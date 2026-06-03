@@ -88,7 +88,6 @@ class AuraService {
   }
 
   Stream<List<AuraTransaction>> getAuraHistory(String userId) {
-    print('Fetching aura history for userId: $userId'); // Debug log
     
     return _firestore
         .collection('aura_transactions')
@@ -97,13 +96,11 @@ class AuraService {
         .limit(100)
         .snapshots()
         .map((snapshot) {
-          print('Retrieved ${snapshot.docs.length} aura transactions'); // Debug log
           return snapshot.docs
               .map((doc) {
                 try {
                   return AuraTransaction.fromMap(doc.data(), doc.id);
                 } catch (e) {
-                  print('Error parsing transaction ${doc.id}: $e');
                   return null;
                 }
               })
@@ -115,7 +112,6 @@ class AuraService {
 
   // Alternative method without orderBy to test if indexing is the issue
   Stream<List<AuraTransaction>> getAuraHistorySimple(String userId) {
-    print('Fetching simple aura history for userId: $userId');
     
     return _firestore
         .collection('aura_transactions')
@@ -123,13 +119,11 @@ class AuraService {
         .limit(100)
         .snapshots()
         .map((snapshot) {
-          print('Retrieved ${snapshot.docs.length} aura transactions (simple)');
           final transactions = snapshot.docs
               .map((doc) {
                 try {
                   return AuraTransaction.fromMap(doc.data(), doc.id);
                 } catch (e) {
-                  print('Error parsing transaction ${doc.id}: $e');
                   return null;
                 }
               })
@@ -146,19 +140,16 @@ class AuraService {
   // Method to test if any transactions exist for a user
   Future<List<AuraTransaction>> getAuraHistoryOnce(String userId) async {
     try {
-      print('Testing single fetch for userId: $userId');
       final snapshot = await _firestore
           .collection('aura_transactions')
           .where('toUserId', isEqualTo: userId)
           .get();
       
-      print('Found ${snapshot.docs.length} transactions in single fetch');
       
       return snapshot.docs
           .map((doc) => AuraTransaction.fromMap(doc.data(), doc.id))
           .toList();
     } catch (e) {
-      print('Error in single fetch: $e');
       rethrow;
     }
   }

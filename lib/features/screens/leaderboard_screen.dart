@@ -137,47 +137,49 @@ class LeaderboardScreen extends ConsumerWidget {
       }
     }
 
-    return Column(
-      children: [
-        CircleAvatar(
-          radius: 30,
-          backgroundImage: user.photoURL != null ? NetworkImage(user.photoURL!) : null,
-          child: user.photoURL == null
-              ? Text(
-                  user.displayName.isNotEmpty ? user.displayName[0].toUpperCase() : 'U',
-                  style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                )
-              : null,
-        ),
-        const SizedBox(height: 8),
-        Text(
-          user.displayName,
-          style: const TextStyle(fontWeight: FontWeight.bold),
-          textAlign: TextAlign.center,
-          overflow: TextOverflow.ellipsis,
-        ),
-        Text(
-          '${user.currentWeekAura} aura',
-          style: TextStyle(
-            color: Theme.of(context).colorScheme.primary,
-            fontWeight: FontWeight.bold,
+    return Expanded(
+      child: Column(
+        children: [
+          CircleAvatar(
+            radius: 30,
+            backgroundImage: user.photoURL != null ? NetworkImage(user.photoURL!) : null,
+            child: user.photoURL == null
+                ? Text(
+                    user.displayName.isNotEmpty ? user.displayName[0].toUpperCase() : 'U',
+                    style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                  )
+                : null,
           ),
-        ),
-        const SizedBox(height: 8),
-        Container(
-          width: 60,
-          height: height,
-          decoration: BoxDecoration(
-            color: getPlaceColor(place),
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(8)),
+          const SizedBox(height: 8),
+          Text(
+            user.displayName,
+            style: const TextStyle(fontWeight: FontWeight.bold),
+            textAlign: TextAlign.center,
+            overflow: TextOverflow.ellipsis,
           ),
-          child: Icon(
-            getPlaceIcon(place),
-            color: Colors.white,
-            size: 30,
+          Text(
+            '${user.currentWeekAura} aura',
+            style: TextStyle(
+              color: Theme.of(context).colorScheme.primary,
+              fontWeight: FontWeight.bold,
+            ),
           ),
-        ),
-      ],
+          const SizedBox(height: 8),
+          Container(
+            width: 60,
+            height: height,
+            decoration: BoxDecoration(
+              color: getPlaceColor(place),
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(8)),
+            ),
+            child: Icon(
+              getPlaceIcon(place),
+              color: Colors.white,
+              size: 30,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
