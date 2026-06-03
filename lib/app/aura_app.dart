@@ -1,4 +1,5 @@
 import 'package:aura_app/core/services/auth_service.dart';
+import 'package:aura_app/core/theme/app_theme.dart';
 import 'package:aura_app/features/screens/give_aura_screen.dart';
 import 'package:aura_app/features/screens/home_screen.dart';
 import 'package:aura_app/features/screens/leaderboard_screen.dart';
@@ -6,6 +7,7 @@ import 'package:aura_app/features/screens/login_screen.dart';
 import 'package:aura_app/features/screens/main_shell_screen.dart';
 import 'package:aura_app/features/screens/profile_screen.dart';
 import 'package:aura_app/features/screens/roulette_screen.dart';
+import 'package:aura_app/features/style_gallery/style_gallery_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -20,21 +22,9 @@ class AuraApp extends ConsumerWidget {
     return MaterialApp.router(
       debugShowCheckedModeBanner: false,
       title: 'AuraApp',
-      theme: ThemeData(
-        primarySwatch: Colors.purple,
-        useMaterial3: true,
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: Colors.purple,
-          brightness: Brightness.light,
-        ),
-      ),
-      darkTheme: ThemeData(
-        useMaterial3: true,
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: Colors.purple,
-          brightness: Brightness.dark,
-        ),
-      ),
+      theme: AppTheme.light,
+      darkTheme: AppTheme.dark,
+      themeMode: ThemeMode.dark,
       routerConfig: _createRouter(authState),
     );
   }
@@ -61,6 +51,11 @@ class AuraApp extends ConsumerWidget {
         GoRoute(
           path: '/login',
           builder: (context, state) => const LoginScreen(),
+        ),
+        // Stage-1 design-token preview (debug). Remove before release.
+        GoRoute(
+          path: '/style-gallery',
+          builder: (context, state) => const StyleGalleryScreen(),
         ),
         ShellRoute(
           builder: (context, state, child) => MainShell(child: child),
