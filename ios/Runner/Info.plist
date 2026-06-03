@@ -33,15 +33,36 @@
 			</array>
 		</dict>
 	</array>
-	<key>GoogleSignIn</key>
-	<dict>
-	<key>ClientID</key>
-	<string>594801867619-hkp5skuga9q2eg4cnest0pk98jbo7voh.apps.googleusercontent.com</string>
-	</dict>
 	<key>CFBundleVersion</key>
 	<string>$(FLUTTER_BUILD_NUMBER)</string>
+	<key>GoogleSignIn</key>
+	<dict>
+		<key>ClientID</key>
+		<string>594801867619-hkp5skuga9q2eg4cnest0pk98jbo7voh.apps.googleusercontent.com</string>
+	</dict>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<key>UIApplicationSceneManifest</key>
+	<dict>
+		<key>UIApplicationSupportsMultipleScenes</key>
+		<false/>
+		<key>UISceneConfigurations</key>
+		<dict>
+			<key>UIWindowSceneSessionRoleApplication</key>
+			<array>
+				<dict>
+					<key>UISceneClassName</key>
+					<string>UIWindowScene</string>
+					<key>UISceneConfigurationName</key>
+					<string>flutter</string>
+					<key>UISceneDelegateClassName</key>
+					<string>FlutterSceneDelegate</string>
+					<key>UISceneStoryboardFile</key>
+					<string>Main</string>
+				</dict>
+			</array>
+		</dict>
+	</dict>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
 	<key>UILaunchStoryboardName</key>
