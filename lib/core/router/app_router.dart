@@ -6,6 +6,7 @@ import '../../features/award/presentation/bloc/award_cubit.dart';
 import '../../features/award/presentation/pages/award_page.dart';
 import '../../features/duty/presentation/bloc/duty_cubit.dart';
 import '../../features/duty/presentation/pages/duty_page.dart';
+import '../../features/history/presentation/pages/history_page.dart';
 import '../../features/home/presentation/pages/home_page.dart';
 import '../../features/knowledge/presentation/pages/article_page.dart';
 import '../../features/knowledge/presentation/pages/knowledge_page.dart';
@@ -68,6 +69,13 @@ List<RouteBase> auraRoutes() => [
     path: '/aura/knowledge',
     pageBuilder: (context, state) =>
         _slideRight(state, const KnowledgePage()),
+  ),
+  GoRoute(
+    path: '/aura/history',
+    pageBuilder: (context, state) => _slideRight(
+      state,
+      HistoryPage(userId: state.uri.queryParameters['userId']),
+    ),
   ),
   GoRoute(
     path: '/aura/profile/:id',

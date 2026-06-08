@@ -170,7 +170,10 @@ class _UserProfileView extends StatelessWidget {
                       const SizedBox(height: AppSpacing.s4),
                       _AwardButton(recipientId: d.user.id),
                     ],
-                    _HistorySection(history: d.history),
+                    _HistorySection(
+                      history: d.history,
+                      seeAllUserId: d.user.id,
+                    ),
                   ],
                 ),
               ),
@@ -319,25 +322,42 @@ class _StatTile extends StatelessWidget {
 
 class _HistorySection extends StatelessWidget {
   final List<AuraTransaction> history;
-  const _HistorySection({required this.history});
+
+  /// Whose history "See all" opens. Null = the signed-in user.
+  final String? seeAllUserId;
+
+  const _HistorySection({required this.history, this.seeAllUserId});
 
   @override
   Widget build(BuildContext context) {
     final c = Theme.of(context).extension<AppColors>()!;
+    final shown = history.take(3).toList();
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const SectionLabel('Aura history'),
-        if (history.isEmpty)
+        SectionLabel(
+          'Aura history',
+          trailing: history.isEmpty
+              ? null
+              : GestureDetector(
+                  onTap: () => context.push(
+                    seeAllUserId == null
+                        ? '/aura/history'
+                        : '/aura/history?userId=$seeAllUserId',
+                  ),
+                  child: Text('See all', style: AppType.sm(c)),
+                ),
+        ),
+        if (shown.isEmpty)
           AppCard(child: Text('No Aura yet.', style: AppType.bodyDim(c)))
         else
           AppCard.flush(
             child: Column(
               children: [
-                for (var i = 0; i < history.length; i++)
+                for (var i = 0; i < shown.length; i++)
                   AuraTransactionTile(
-                    txn: history[i],
-                    divider: i != history.length - 1,
+                    txn: shown[i],
+                    divider: i != shown.length - 1,
                   ),
               ],
             ),

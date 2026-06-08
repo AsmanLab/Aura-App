@@ -64,7 +64,7 @@ class HomePage extends StatelessWidget {
                   SectionLabel(
                     'My Aura',
                     trailing: GestureDetector(
-                      onTap: () => context.go('/aura/profile'),
+                      onTap: () => context.push('/aura/history'),
                       child: Text('See all', style: AppType.sm(c)),
                     ),
                   ),
