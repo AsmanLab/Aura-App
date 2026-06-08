@@ -1,10 +1,17 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <uses-permission android:name="android.permission.INTERNET"/>
+    <!-- FCM: runtime notification permission on Android 13+ (requested at runtime). -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
 
     <application
         android:label="Aura App"
         android:name="${applicationName}"
         android:icon="@mipmap/launcher_icon">
+
+        <!-- FCM: default notification channel for backgrounded/data messages. -->
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_channel_id"
+            android:value="aura" />
         <activity
             android:name=".MainActivity"
             android:exported="true"

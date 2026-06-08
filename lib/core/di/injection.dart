@@ -1,7 +1,10 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:get_it/get_it.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
+import 'package:aura_app/core/services/push_service.dart';
 
 import '../../features/award/data/datasources/award_remote_data_source.dart';
 import '../../features/award/data/repositories/award_repository_impl.dart';
@@ -44,6 +47,15 @@ Future<void> setupDi() async {
     () => AuthRepositoryImpl(sl()),
   );
   sl.registerFactory<AuthCubit>(() => AuthCubit(sl()));
+
+  // Push notifications (FCM). init() is called from main().
+  sl.registerLazySingleton<PushService>(
+    () => PushService(
+      FirebaseMessaging.instance,
+      FirebaseFirestore.instance,
+      FirebaseAuth.instance,
+    ),
+  );
 
   // Leaderboard (Firebase users).
   sl.registerLazySingleton<LeaderboardRemoteDataSource>(

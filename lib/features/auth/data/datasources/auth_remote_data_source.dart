@@ -3,7 +3,9 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 
+import 'package:aura_app/core/di/injection.dart';
 import 'package:aura_app/core/models/user_model.dart';
+import 'package:aura_app/core/services/push_service.dart';
 import '../models/app_user_model.dart';
 
 /// Raw auth IO: FirebaseAuth + Google Sign-In + the user's Firestore doc.
@@ -102,6 +104,9 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
 
   @override
   Future<void> signOut() async {
+    // Drop this device's FCM token first (needs the uid, gone after signOut).
+    final uid = _auth.currentUser?.uid;
+    if (uid != null) await sl<PushService>().removeToken(uid);
     await _googleSignIn.signOut();
     await _auth.signOut();
   }

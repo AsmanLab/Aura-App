@@ -1,0 +1,17 @@
+{
+  "name": "aura-functions",
+  "description": "Cloud Functions for Aura (FCM on award).",
+  "private": true,
+  "main": "index.js",
+  "engines": {
+    "node": "20"
+  },
+  "scripts": {
+    "deploy": "firebase deploy --only functions",
+    "logs": "firebase functions:log"
+  },
+  "dependencies": {
+    "firebase-admin": "^12.6.0",
+    "firebase-functions": "^6.0.0"
+  }
+}

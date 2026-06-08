@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:intl/intl.dart';
 
 import 'package:aura_app/core/di/injection.dart';
 import 'package:aura_app/core/models/aura_transaction.dart';
@@ -11,7 +12,6 @@ import 'package:aura_app/core/domain/entities/person.dart';
 import 'package:aura_app/core/domain/repositories/people_repository.dart';
 import 'package:aura_app/core/widgets/app_card.dart';
 import 'package:aura_app/core/widgets/aura_transaction_tile.dart';
-import 'package:aura_app/core/widgets/avatar.dart';
 import 'package:aura_app/core/widgets/section_label.dart';
 import 'package:aura_app/features/auth/domain/repositories/auth_repository.dart';
 import 'package:aura_app/features/profile/domain/repositories/profile_repository.dart';
@@ -21,6 +21,7 @@ typedef _HomeData = ({
   Person onDuty,
   List<AuraTransaction> history,
 });
+
 
 class HomePage extends StatelessWidget {
   const HomePage({super.key});
@@ -65,7 +66,10 @@ class HomePage extends StatelessWidget {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text('Wednesday, Jun 3', style: AppType.sm(c)),
+                          Text(
+                            DateFormat('EEEE, MMM d').format(DateTime.now()),
+                            style: AppType.sm(c),
+                          ),
                           Text('Hi, $firstName', style: AppType.h1(c)),
                         ],
                       ),
