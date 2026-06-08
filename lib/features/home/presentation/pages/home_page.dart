@@ -77,49 +77,48 @@ class HomePage extends StatelessWidget {
                   ],
                 ),
 
-                const SectionLabel('On duty now'),
-                AppCard(
-                  onTap: () => context.push('/aura/duty'),
-                  child: Row(
-                    children: [
-                      Avatar(id: d.onDuty.id, name: d.onDuty.name, size: 52),
-                      const SizedBox(width: AppSpacing.s4),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(d.onDuty.name, style: AppType.h3(c)),
-                            Text(d.onDuty.position, style: AppType.sm(c)),
-                          ],
-                        ),
-                      ),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.end,
-                        children: [
-                          Row(
-                            children: [
-                              Container(
-                                width: 8,
-                                height: 8,
-                                decoration: BoxDecoration(
-                                  color: c.success,
-                                  shape: BoxShape.circle,
-                                ),
-                              ),
-                              const SizedBox(width: 5),
-                              Text(
-                                'Live',
-                                style: AppType.sm(c).copyWith(color: c.success),
-                              ),
-                            ],
-                          ),
-                          Text('until 6 PM', style: AppType.sm(c)),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-
+                // const SectionLabel('On duty now'),
+                // AppCard(
+                //   onTap: () => context.push('/aura/duty'),
+                //   child: Row(
+                //     children: [
+                //       Avatar(id: d.onDuty.id, name: d.onDuty.name, size: 52),
+                //       const SizedBox(width: AppSpacing.s4),
+                //       Expanded(
+                //         child: Column(
+                //           crossAxisAlignment: CrossAxisAlignment.start,
+                //           children: [
+                //             Text(d.onDuty.name, style: AppType.h3(c)),
+                //             Text(d.onDuty.position, style: AppType.sm(c)),
+                //           ],
+                //         ),
+                //       ),
+                //       Column(
+                //         crossAxisAlignment: CrossAxisAlignment.end,
+                //         children: [
+                //           Row(
+                //             children: [
+                //               Container(
+                //                 width: 8,
+                //                 height: 8,
+                //                 decoration: BoxDecoration(
+                //                   color: c.success,
+                //                   shape: BoxShape.circle,
+                //                 ),
+                //               ),
+                //               const SizedBox(width: 5),
+                //               Text(
+                //                 'Live',
+                //                 style: AppType.sm(c).copyWith(color: c.success),
+                //               ),
+                //             ],
+                //           ),
+                //           Text('until 6 PM', style: AppType.sm(c)),
+                //         ],
+                //       ),
+                //     ],
+                //   ),
+                // ),
                 SectionLabel(
                   'My Aura',
                   trailing: GestureDetector(

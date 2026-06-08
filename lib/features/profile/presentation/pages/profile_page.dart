@@ -270,39 +270,51 @@ class _StatsCards extends StatelessWidget {
     final c = Theme.of(context).extension<AppColors>()!;
     return Column(
       children: [
-        AppCard(
-          child: Column(
-            children: [
-              Text('Total Aura', style: AppType.sm(c)),
-              const SizedBox(height: AppSpacing.s2),
-              AuraValue(user.totalAura, size: 64),
-            ],
-          ),
-        ),
-        const SizedBox(height: AppSpacing.s4),
-        AppCard(
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text('This week', style: AppType.sm(c)),
-              AuraValue(user.currentWeekAura, size: 22, showUnit: false),
-            ],
-          ),
-        ),
-        const SizedBox(height: AppSpacing.s4),
-        AppCard(
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text('Member since', style: AppType.sm(c)),
-              Text(
-                DateFormat.yMMMd().format(user.createdAt),
-                style: AppType.number(15, c),
+        // Total Aura + This week — two-up grid in one row.
+        Row(
+          children: [
+            Expanded(
+              child: _StatTile(
+                label: 'Total Aura',
+                value: user.totalAura,
               ),
-            ],
-          ),
+            ),
+            const SizedBox(width: AppSpacing.s3),
+            Expanded(
+              child: _StatTile(
+                label: 'This week',
+                value: user.currentWeekAura,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: AppSpacing.s4),
+        Text(
+          'Member since ${DateFormat.yMMMd().format(user.createdAt)}',
+          style: AppType.sm(c).copyWith(color: c.textFaint),
         ),
       ],
+    );
+  }
+}
+
+class _StatTile extends StatelessWidget {
+  final String label;
+  final int value;
+  const _StatTile({required this.label, required this.value});
+
+  @override
+  Widget build(BuildContext context) {
+    final c = Theme.of(context).extension<AppColors>()!;
+    return AppCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(label, style: AppType.sm(c)),
+          const SizedBox(height: AppSpacing.s2),
+          AuraValue(value, size: 36, showUnit: false),
+        ],
+      ),
     );
   }
 }
