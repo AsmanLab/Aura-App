@@ -15,7 +15,14 @@ abstract class AuthRepository {
 
   AppUser? get currentUser;
 
+  /// One-shot read of the signed-in user's Firestore profile.
+  Future<UserModel?> getUser();
+
   Future<AppUser?> signInWithGoogle();
 
   Future<void> signOut();
+
+  /// Validate the persisted session at startup; signs out if the token can't
+  /// be refreshed (expired/revoked).
+  Future<void> ensureFreshToken();
 }

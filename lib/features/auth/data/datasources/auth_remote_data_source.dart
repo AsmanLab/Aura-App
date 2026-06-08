@@ -11,8 +11,16 @@ abstract class AuthRemoteDataSource {
   Stream<User?> authStateChanges();
   User? get currentUser;
   Stream<UserModel?> currentUserProfile();
+
+  /// One-shot read of the signed-in user's Firestore profile (`users/{uid}`).
+  Future<UserModel?> getUser();
+
   Future<AppUserModel?> signInWithGoogle();
   Future<void> signOut();
+
+  /// Force-refresh the ID token. If the refresh token is expired/revoked the
+  /// refresh fails → sign out so the app routes to login.
+  Future<void> ensureFreshToken();
 }
 
 class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
@@ -33,6 +41,14 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
       final doc = await _firestore.collection('users').doc(user.uid).get();
       return doc.exists ? UserModel.fromMap(doc.data()!, doc.id) : null;
     });
+  }
+
+  @override
+  Future<UserModel?> getUser() async {
+    final user = _auth.currentUser;
+    if (user == null) return null;
+    final doc = await _firestore.collection('users').doc(user.uid).get();
+    return doc.exists ? UserModel.fromMap(doc.data()!, doc.id) : null;
   }
 
   @override
@@ -61,8 +77,13 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
     }
   }
 
+  /// Existing Firestore user → just sign in (leave their data untouched).
+  /// New user → register by creating the doc with defaults.
   Future<void> _createUserIfNotExists(User user) async {
     final docRef = _firestore.collection('users').doc(user.uid);
+    final snapshot = await docRef.get();
+    if (snapshot.exists) return; // already registered — login only
+
     await docRef.set({
       'id': user.uid,
       'displayName': user.displayName ?? 'Anonymous',
@@ -72,12 +93,24 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
       'totalAura': 0,
       'lastRouletteDate': null,
       'createdAt': FieldValue.serverTimestamp(),
-    }, SetOptions(merge: true));
+    });
   }
 
   @override
   Future<void> signOut() async {
     await _googleSignIn.signOut();
     await _auth.signOut();
+  }
+
+  @override
+  Future<void> ensureFreshToken() async {
+    final user = _auth.currentUser;
+    if (user == null) return;
+    try {
+      await user.getIdToken(true); // forces a refresh; throws if revoked/expired
+    } catch (e) {
+      debugPrint('Token refresh failed, signing out: $e');
+      await signOut();
+    }
   }
 }

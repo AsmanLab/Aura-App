@@ -1,13 +1,8 @@
 import 'package:aura_app/features/auth/presentation/auth_providers.dart';
 import 'package:aura_app/features/auth/presentation/bloc/auth_cubit.dart';
 import 'package:aura_app/features/auth/presentation/pages/login_screen.dart';
+import 'package:aura_app/features/auth/presentation/pages/splash_screen.dart';
 import 'package:aura_app/core/theme/app_theme.dart';
-import 'package:aura_app/features/give_aura/presentation/pages/give_aura_screen.dart';
-import 'package:aura_app/features/home/presentation/pages/home_screen.dart';
-import 'package:aura_app/features/leaderboard/presentation/pages/leaderboard_screen.dart';
-import 'package:aura_app/features/profile/presentation/pages/main_shell_screen.dart';
-import 'package:aura_app/features/profile/presentation/pages/profile_screen.dart';
-import 'package:aura_app/features/roulette/presentation/pages/roulette_screen.dart';
 import 'package:aura_app/core/di/injection.dart';
 import 'package:aura_app/core/router/app_router.dart';
 import 'package:aura_app/features/debug/seed_debug_screen.dart';
@@ -20,12 +15,34 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-class AuraApp extends ConsumerWidget {
+class AuraApp extends ConsumerStatefulWidget {
   const AuraApp({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final authState = ref.watch(authStateProvider);
+  ConsumerState<AuraApp> createState() => _AuraAppState();
+}
+
+class _AuraAppState extends ConsumerState<AuraApp> {
+  // Latest auth state, exposed to the router as a refresh trigger. The router
+  // is built ONCE; this notifier re-runs its redirect on auth changes instead
+  // of recreating the router (which deactivates widgets mid-flight).
+  late final ValueNotifier<AsyncValue<bool>> _auth =
+      ValueNotifier(ref.read(authStateProvider));
+  late final GoRouter _router = _createRouter();
+
+  @override
+  void dispose() {
+    _router.dispose();
+    _auth.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    // Push auth changes into the notifier → router redirect re-runs.
+    ref.listen<AsyncValue<bool>>(authStateProvider, (_, next) {
+      _auth.value = next;
+    });
 
     return MultiBlocProvider(
       providers: [
@@ -44,41 +61,52 @@ class AuraApp extends ConsumerWidget {
             themeMode: themeMode,
             locale: locale,
             supportedLocales: const [Locale('en'), Locale('ru')],
-            localizationsDelegates:
-                GlobalMaterialLocalizations.delegates,
-            routerConfig: _createRouter(authState),
+            localizationsDelegates: GlobalMaterialLocalizations.delegates,
+            routerConfig: _router,
           );
         },
       ),
     );
   }
 
-  GoRouter _createRouter(AsyncValue<bool> authState) {
+  GoRouter _createRouter() {
     return GoRouter(
-      // Boot to '/', which redirects unauthenticated users to '/login'.
-      initialLocation: '/',
+      // Boot to '/splash' while the persisted session is validated; redirect
+      // then routes to the app ('/aura/home') or '/login'.
+      initialLocation: '/splash',
+      refreshListenable: _auth,
       redirect: (context, state) {
+        final authState = _auth.value;
         final path = state.uri.toString();
-        // Spec "Aura" app + debug screens render standalone on seed data.
+        // Auth-free routes. The app ('/aura/*') now requires a session.
         final isPublic = path == '/login' ||
-            path.startsWith('/aura') ||
+            path == '/splash' ||
             path == '/style-gallery' ||
             path == '/debug-seed';
         return authState.when(
+          // Auth resolved: leave the splash for the right destination.
           data: (isAuthenticated) {
+            if (path == '/splash') {
+              return isAuthenticated ? '/aura/home' : '/login';
+            }
             if (!isAuthenticated && !isPublic) {
               return '/login';
             }
             if (isAuthenticated && path == '/login') {
-              return '/';
+              return '/aura/home';
             }
             return null;
           },
-          loading: () => null,
+          // Still resolving: hold on the splash.
+          loading: () => path == '/splash' ? null : '/splash',
           error: (_, __) => isPublic ? null : '/login',
         );
       },
       routes: [
+        GoRoute(
+          path: '/splash',
+          builder: (context, state) => const SplashScreen(),
+        ),
         GoRoute(
           path: '/login',
           builder: (context, state) => BlocProvider(
@@ -96,32 +124,7 @@ class AuraApp extends ConsumerWidget {
           path: '/debug-seed',
           builder: (context, state) => const SeedDebugScreen(),
         ),
-        ShellRoute(
-          builder: (context, state, child) => MainShell(child: child),
-          routes: [
-            GoRoute(
-              path: '/',
-              builder: (context, state) => const HomeScreen(),
-            ),
-            GoRoute(
-              path: '/leaderboard',
-              builder: (context, state) => const LeaderboardScreen(),
-            ),
-            GoRoute(
-              path: '/roulette',
-              builder: (context, state) => const RouletteScreen(),
-            ),
-            GoRoute(
-              path: '/profile',
-              builder: (context, state) => const ProfileScreen(),
-            ),
-            GoRoute(
-              path: '/give-aura',
-              builder: (context, state) => const GiveAuraScreen(),
-            ),
-          ],
-        ),
-        // Spec "Aura" app (Stages 4–7), mounted at /aura/*.
+        // The Aura app (auth-gated), mounted at /aura/*.
         ...auraRoutes(),
       ],
     );

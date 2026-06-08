@@ -22,8 +22,14 @@ class AuthRepositoryImpl implements AuthRepository {
   }
 
   @override
+  Future<UserModel?> getUser() => _remote.getUser();
+
+  @override
   Future<AppUser?> signInWithGoogle() => _remote.signInWithGoogle();
 
   @override
   Future<void> signOut() => _remote.signOut();
+
+  @override
+  Future<void> ensureFreshToken() => _remote.ensureFreshToken();
 }

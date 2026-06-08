@@ -42,21 +42,36 @@ class Avatar extends StatelessWidget {
   final double size;
   final bool ring;
 
+  /// Optional network photo (e.g. Google account picture). Falls back to
+  /// gradient initials when null/empty or if it fails to load.
+  final String? photoUrl;
+
   const Avatar({
     super.key,
     required this.id,
     required this.name,
     this.size = 44,
     this.ring = false,
+    this.photoUrl,
   });
 
   @override
   Widget build(BuildContext context) {
     final grad = gradFor(id);
+    final initials = Text(
+      initialsOf(name),
+      style: GoogleFonts.manrope(
+        fontSize: 0.38 * size,
+        fontWeight: FontWeight.w700,
+        color: Colors.white,
+      ),
+    );
+    final hasPhoto = photoUrl != null && photoUrl!.isNotEmpty;
     final disc = Container(
       width: size,
       height: size,
       alignment: Alignment.center,
+      clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
         gradient: LinearGradient(
@@ -65,14 +80,15 @@ class Avatar extends StatelessWidget {
           colors: grad,
         ),
       ),
-      child: Text(
-        initialsOf(name),
-        style: GoogleFonts.manrope(
-          fontSize: 0.38 * size,
-          fontWeight: FontWeight.w700,
-          color: Colors.white,
-        ),
-      ),
+      child: hasPhoto
+          ? Image.network(
+              photoUrl!,
+              fit: BoxFit.cover,
+              width: size,
+              height: size,
+              errorBuilder: (_, __, ___) => Center(child: initials),
+            )
+          : initials,
     );
 
     if (!ring) return disc;
