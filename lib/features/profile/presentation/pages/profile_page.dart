@@ -12,6 +12,8 @@ import 'package:aura_app/core/widgets/app_card.dart';
 import 'package:aura_app/core/widgets/aura_transaction_tile.dart';
 import 'package:aura_app/core/widgets/aura_value.dart';
 import 'package:aura_app/core/widgets/avatar.dart';
+import 'package:aura_app/core/models/enums.dart';
+import 'package:aura_app/core/widgets/hearts_status.dart';
 import 'package:aura_app/core/widgets/role_badge.dart';
 import 'package:aura_app/core/widgets/skeleton.dart';
 import 'package:aura_app/core/widgets/section_label.dart';
@@ -39,145 +41,158 @@ class ProfilePage extends StatelessWidget {
   }
 }
 
-typedef _MyData = ({UserModel user, List<AuraTransaction> history});
-
 /// The signed-in user's profile (Firebase) + nav rows + received-aura history.
+/// Realtime: streams the user doc + aura history.
 class _MyProfileView extends StatelessWidget {
   const _MyProfileView();
-
-  Future<_MyData?> _load() async {
-    final user = await sl<AuthRepository>().getUser();
-    if (user == null) return null;
-    final history = await sl<ProfileRepository>().getHistory(user.id);
-    return (user: user, history: history);
-  }
 
   @override
   Widget build(BuildContext context) {
     final c = Theme.of(context).extension<AppColors>()!;
-    return FutureBuilder<_MyData?>(
-      future: _load(),
-      builder: (context, snap) {
-        if (snap.connectionState != ConnectionState.done) {
+    final uid = sl<AuthRepository>().currentUser?.id;
+    if (uid == null) {
+      return Center(
+        child: Text('Could not load profile.', style: AppType.body(c)),
+      );
+    }
+    return StreamBuilder<UserModel?>(
+      stream: sl<ProfileRepository>().watchUser(uid),
+      builder: (context, userSnap) {
+        if (!userSnap.hasData &&
+            userSnap.connectionState == ConnectionState.waiting) {
           return const PageSkeleton(header: true);
         }
-        final d = snap.data;
-        if (d == null) {
+        final user = userSnap.data;
+        if (user == null) {
           return Center(
             child: Text('Could not load profile.', style: AppType.body(c)),
           );
         }
-        final user = d.user;
-        return ListView(
-          padding: const EdgeInsets.fromLTRB(
-            AppSpacing.screenPad,
-            AppSpacing.s4,
-            AppSpacing.screenPad,
-            120,
-          ),
-          children: [
-            _Identity(user: user),
-            const SizedBox(height: AppSpacing.s5),
-            _StatsCards(user: user),
-            const SizedBox(height: AppSpacing.s5),
-            AppCard.flush(
-              child: Column(
-                children: [
-                  _NavRow(
-                    icon: Icons.shield_rounded,
-                    label: 'Duty',
-                    onTap: () => context.push('/aura/duty'),
-                  ),
-                  _NavRow(
-                    icon: Icons.menu_book_rounded,
-                    label: 'Knowledge',
-                    onTap: () => context.push('/aura/knowledge'),
-                  ),
-                  _NavRow(
-                    icon: Icons.settings_rounded,
-                    label: 'Settings',
-                    onTap: () => context.push('/aura/settings'),
-                    divider: false,
-                  ),
-                ],
+        return StreamBuilder<List<AuraTransaction>>(
+          stream: sl<ProfileRepository>().watchHistory(uid),
+          builder: (context, histSnap) {
+            final history = histSnap.data ?? const <AuraTransaction>[];
+            return ListView(
+              padding: const EdgeInsets.fromLTRB(
+                AppSpacing.screenPad,
+                AppSpacing.s4,
+                AppSpacing.screenPad,
+                120,
               ),
-            ),
-            _HistorySection(history: d.history),
-          ],
+              children: [
+                _Identity(user: user),
+                const SizedBox(height: AppSpacing.s5),
+                _StatsCards(user: user),
+                if (user.role == Role.intern) ...[
+                  const SizedBox(height: AppSpacing.s4),
+                  HeartsStatus(count: user.hearts),
+                ],
+                const SizedBox(height: AppSpacing.s5),
+                AppCard.flush(
+                  child: Column(
+                    children: [
+                      _NavRow(
+                        icon: Icons.shield_rounded,
+                        label: 'Duty',
+                        onTap: () => context.push('/aura/duty'),
+                      ),
+                      _NavRow(
+                        icon: Icons.menu_book_rounded,
+                        label: 'Knowledge',
+                        onTap: () => context.push('/aura/knowledge'),
+                      ),
+                      _NavRow(
+                        icon: Icons.settings_rounded,
+                        label: 'Settings',
+                        onTap: () => context.push('/aura/settings'),
+                        divider: false,
+                      ),
+                    ],
+                  ),
+                ),
+                _HistorySection(history: history),
+              ],
+            );
+          },
         );
       },
     );
   }
 }
 
-typedef _UserData = ({
-  UserModel user,
-  UserModel? me,
-  List<AuraTransaction> history,
-});
-
-/// Another person's profile (Firebase) — stats + aura history, award if mentor.
+/// Another person's profile (Firebase) — realtime stats + aura history,
+/// award if the viewer is a mentor.
 class _UserProfileView extends StatelessWidget {
   final String id;
   const _UserProfileView({required this.id});
 
-  Future<_UserData?> _load() async {
-    final profile = sl<ProfileRepository>();
-    final user = await profile.getUser(id);
-    if (user == null) return null;
-    return (
-      user: user,
-      me: await sl<AuthRepository>().getUser(),
-      history: await profile.getHistory(id),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     final c = Theme.of(context).extension<AppColors>()!;
-    return FutureBuilder<_UserData?>(
-      future: _load(),
-      builder: (context, snap) {
-        final loading = snap.connectionState != ConnectionState.done;
-        final d = snap.data;
-        final user = d?.user;
-        final canAward =
-            (d?.me?.canAward ?? false) && d?.me?.id != user?.id;
-        return CustomScrollView(
-          slivers: [
-            _ProfileSliverBar(user: user),
-            if (loading)
-              const SliverToBoxAdapter(child: PageSkeleton())
-            else if (d == null)
-              SliverFillRemaining(
-                hasScrollBody: false,
-                child: Center(
-                  child: Text('User not found.', style: AppType.body(c)),
-                ),
-              )
-            else
-              SliverPadding(
-                padding: const EdgeInsets.fromLTRB(
-                  AppSpacing.screenPad,
-                  AppSpacing.s4,
-                  AppSpacing.screenPad,
-                  120,
-                ),
-                sliver: SliverList.list(
-                  children: [
-                    _StatsCards(user: d.user),
-                    if (canAward) ...[
-                      const SizedBox(height: AppSpacing.s4),
-                      _AwardButton(recipientId: d.user.id),
-                    ],
-                    _HistorySection(
-                      history: d.history,
-                      seeAllUserId: d.user.id,
-                    ),
+    final profile = sl<ProfileRepository>();
+    return FutureBuilder<UserModel?>(
+      // Viewer (for award gating) — role rarely changes, one-shot is fine.
+      future: sl<AuthRepository>().getUser(),
+      builder: (context, meSnap) {
+        final me = meSnap.data;
+        return StreamBuilder<UserModel?>(
+          stream: profile.watchUser(id),
+          builder: (context, userSnap) {
+            final loading =
+                !userSnap.hasData &&
+                userSnap.connectionState == ConnectionState.waiting;
+            final user = userSnap.data;
+            final canAward = (me?.canAward ?? false) && me?.id != user?.id;
+            return StreamBuilder<List<AuraTransaction>>(
+              stream: profile.watchHistory(id),
+              builder: (context, histSnap) {
+                final history = histSnap.data ?? const <AuraTransaction>[];
+                return CustomScrollView(
+                  slivers: [
+                    _ProfileSliverBar(user: user),
+                    if (loading)
+                      const SliverToBoxAdapter(child: PageSkeleton())
+                    else if (user == null)
+                      SliverFillRemaining(
+                        hasScrollBody: false,
+                        child: Center(
+                          child: Text(
+                            'User not found.',
+                            style: AppType.body(c),
+                          ),
+                        ),
+                      )
+                    else
+                      SliverPadding(
+                        padding: const EdgeInsets.fromLTRB(
+                          AppSpacing.screenPad,
+                          AppSpacing.s4,
+                          AppSpacing.screenPad,
+                          120,
+                        ),
+                        sliver: SliverList.list(
+                          children: [
+                            _StatsCards(user: user),
+                            if (user.role == Role.intern) ...[
+                              const SizedBox(height: AppSpacing.s4),
+                              HeartsStatus(count: user.hearts),
+                            ],
+                            if (canAward) ...[
+                              const SizedBox(height: AppSpacing.s4),
+                              _AwardButton(recipientId: user.id),
+                            ],
+                            _HistorySection(
+                              history: history,
+                              seeAllUserId: user.id,
+                            ),
+                          ],
+                        ),
+                      ),
                   ],
-                ),
-              ),
-          ],
+                );
+              },
+            );
+          },
         );
       },
     );
@@ -275,17 +290,11 @@ class _StatsCards extends StatelessWidget {
         Row(
           children: [
             Expanded(
-              child: _StatTile(
-                label: 'Total Aura',
-                value: user.totalAura,
-              ),
+              child: _StatTile(label: 'Total Aura', value: user.totalAura),
             ),
             const SizedBox(width: AppSpacing.s3),
             Expanded(
-              child: _StatTile(
-                label: 'This week',
-                value: user.currentWeekAura,
-              ),
+              child: _StatTile(label: 'This week', value: user.currentWeekAura),
             ),
           ],
         ),
@@ -389,8 +398,7 @@ class _NavRow extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(AppSpacing.s4),
         decoration: BoxDecoration(
-          border:
-              divider ? Border(bottom: BorderSide(color: c.border)) : null,
+          border: divider ? Border(bottom: BorderSide(color: c.border)) : null,
         ),
         child: Row(
           children: [

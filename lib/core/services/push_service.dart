@@ -28,8 +28,6 @@ class PushService {
   final FirebaseFirestore _db;
   final FirebaseAuth _auth;
 
-  StreamSubscription<User?>? _authSub;
-
   PushService(this._fcm, this._db, this._auth);
 
   Future<void> init() async {
@@ -48,16 +46,26 @@ class PushService {
     final initial = await _fcm.getInitialMessage();
     if (initial != null) _onOpened(initial);
 
-    _authSub = _auth.authStateChanges().listen((user) {
-      if (user != null) syncToken(user.uid);
+    // Persist a rotated token for whoever is signed in.
+    _fcm.onTokenRefresh.listen((t) {
+      final uid = _auth.currentUser?.uid;
+      if (uid != null) _save(uid, t);
     });
+
+    // Cold start with a restored session: the user doc already exists, so
+    // saving the token won't create a partial doc. (Interactive sign-in syncs
+    // the token AFTER the user doc is created — see AuthRemoteDataSource — so
+    // there's no race that writes only `fcmTokens`.)
+    final current = _auth.currentUser;
+    if (current != null) await syncToken(current.uid);
   }
 
+  /// Save this device's current FCM token under the user. Only call once the
+  /// user's Firestore doc exists (otherwise the merge creates a partial doc).
   Future<void> syncToken(String uid) async {
     try {
       final token = await _fcm.getToken();
       if (token != null) await _save(uid, token);
-      _fcm.onTokenRefresh.listen((t) => _save(uid, t));
     } catch (e) {
       debugPrint('PushService.syncToken failed: $e');
     }
@@ -98,6 +106,4 @@ class PushService {
     final route = m.data['route'] as String?;
     if (route != null) rootNavigatorKey.currentContext?.push(route);
   }
-
-  void dispose() => _authSub?.cancel();
 }

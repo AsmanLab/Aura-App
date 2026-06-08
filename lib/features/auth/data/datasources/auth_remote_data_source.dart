@@ -72,6 +72,9 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
       final userCredential = await _auth.signInWithCredential(credential);
       final user = userCredential.user!;
       await _createUserIfNotExists(user);
+      // Connect this device to push immediately (also covered by the auth
+      // listener in PushService, but do it here so it's tied to sign-in).
+      await sl<PushService>().syncToken(user.uid);
       return AppUserModel.fromFirebaseUser(user);
     } catch (e) {
       debugPrint('Google Sign-In Error: $e');
@@ -95,6 +98,8 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
       'totalAura': 0,
       'role': 'intern', // default; an admin promotes to mentor
       'position': '',
+      'hearts': 8,
+      'fcmTokens': <String>[], // device tokens added on sign-in
       'lastRouletteDate': null,
       'createdAt': FieldValue.serverTimestamp(),
       'schemaVersion': 1,
@@ -107,8 +112,22 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
     // Drop this device's FCM token first (needs the uid, gone after signOut).
     final uid = _auth.currentUser?.uid;
     if (uid != null) await sl<PushService>().removeToken(uid);
-    await _googleSignIn.signOut();
+
+    // disconnect() fully revokes the cached Google account so the next sign-in
+    // shows the account chooser (clean switch). Falls back to signOut().
+    try {
+      await _googleSignIn.disconnect();
+    } catch (_) {
+      await _googleSignIn.signOut();
+    }
     await _auth.signOut();
+
+    // Clear Firestore's offline cache so a different account can't see the
+    // previous user's cached docs. Best-effort: throws if listeners are still
+    // active, in which case the uid-scoped queries already isolate data.
+    try {
+      await _firestore.clearPersistence();
+    } catch (_) {}
   }
 
   @override

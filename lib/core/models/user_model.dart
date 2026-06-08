@@ -14,6 +14,9 @@ class UserModel {
   /// Job title, e.g. "Frontend Intern". Free text; defaults to the role label.
   final String position;
 
+  /// Remaining hearts (0..maxHearts). Interns lose hearts on negative aura.
+  final int hearts;
+
   final DateTime? lastRouletteDate;
   final DateTime createdAt;
 
@@ -22,6 +25,8 @@ class UserModel {
 
   /// Forward-compat bucket for experimental/not-yet-typed fields.
   final Map<String, dynamic> metadata;
+
+  static const maxHearts = 8;
 
   UserModel({
     required this.id,
@@ -32,6 +37,7 @@ class UserModel {
     required this.totalAura,
     this.role = Role.intern,
     this.position = '',
+    this.hearts = maxHearts,
     this.lastRouletteDate,
     required this.createdAt,
     this.schemaVersion = 1,
@@ -53,6 +59,7 @@ class UserModel {
       totalAura: map['totalAura'] ?? 0,
       role: Role.values.asNameMap()[map['role']] ?? Role.intern,
       position: map['position'] ?? '',
+      hearts: map['hearts'] ?? maxHearts,
       lastRouletteDate: (map['lastRouletteDate'] as Timestamp?)?.toDate(),
       createdAt:
           (map['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
@@ -70,6 +77,7 @@ class UserModel {
       'totalAura': totalAura,
       'role': role.name,
       'position': position,
+      'hearts': hearts,
       'lastRouletteDate':
           lastRouletteDate != null ? Timestamp.fromDate(lastRouletteDate!) : null,
       'createdAt': Timestamp.fromDate(createdAt),
@@ -86,6 +94,7 @@ class UserModel {
     int? totalAura,
     Role? role,
     String? position,
+    int? hearts,
     DateTime? lastRouletteDate,
     int? schemaVersion,
     Map<String, dynamic>? metadata,
@@ -99,6 +108,7 @@ class UserModel {
       totalAura: totalAura ?? this.totalAura,
       role: role ?? this.role,
       position: position ?? this.position,
+      hearts: hearts ?? this.hearts,
       lastRouletteDate: lastRouletteDate ?? this.lastRouletteDate,
       createdAt: createdAt,
       schemaVersion: schemaVersion ?? this.schemaVersion,

@@ -14,6 +14,7 @@ import 'package:aura_app/core/widgets/section_label.dart';
 import 'package:aura_app/core/widgets/segmented_control.dart';
 import 'package:aura_app/core/settings/locale_cubit.dart';
 import 'package:aura_app/core/settings/theme_cubit.dart';
+import 'package:aura_app/features/auth/domain/repositories/auth_repository.dart';
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
@@ -37,6 +38,38 @@ class _SettingsPageState extends State<SettingsPage> {
         _loaded = true;
       });
     });
+  }
+
+  Future<void> _logout() async {
+    final c = Theme.of(context).extension<AppColors>()!;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: c.surface,
+        title: Text('Log out?', style: AppType.h3(c)),
+        content: Text(
+          'You will be signed out of this account.',
+          style: AppType.bodyDim(c),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text('Cancel', style: AppType.bodyStrong(c)),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text(
+              'Log out',
+              style: AppType.bodyStrong(c).copyWith(color: c.heart),
+            ),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+    // signOut() removes the FCM token + clears the cached Google/Firebase
+    // session; authStateChanges then redirects the router to /login.
+    await sl<AuthRepository>().signOut();
   }
 
   @override
@@ -140,6 +173,33 @@ class _SettingsPageState extends State<SettingsPage> {
                         ),
                       ],
                     ],
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.s8),
+                GestureDetector(
+                  onTap: _logout,
+                  behavior: HitTestBehavior.opaque,
+                  child: Container(
+                    height: 52,
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      color: c.heart.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(AppSpacing.rSm),
+                      border: Border.all(
+                        color: c.heart.withValues(alpha: 0.4),
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.logout, size: 18, color: c.heart),
+                        const SizedBox(width: AppSpacing.s2),
+                        Text(
+                          'Log out',
+                          style: AppType.bodyStrong(c).copyWith(color: c.heart),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ],
