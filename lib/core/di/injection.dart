@@ -9,6 +9,9 @@ import '../../features/award/domain/repositories/award_repository.dart';
 import '../../features/leaderboard/data/datasources/leaderboard_remote_data_source.dart';
 import '../../features/leaderboard/data/repositories/leaderboard_repository_impl.dart';
 import '../../features/leaderboard/domain/repositories/leaderboard_repository.dart';
+import '../../features/profile/data/datasources/profile_remote_data_source.dart';
+import '../../features/profile/data/repositories/profile_repository_impl.dart';
+import '../../features/profile/domain/repositories/profile_repository.dart';
 import 'package:aura_app/core/data/repositories/seed_duty_repository.dart';
 import 'package:aura_app/core/data/repositories/seed_knowledge_repository.dart';
 import 'package:aura_app/core/data/repositories/seed_people_repository.dart';
@@ -56,6 +59,14 @@ Future<void> setupDi() async {
   );
   sl.registerLazySingleton<AwardRepository>(
     () => AwardRepositoryImpl(sl(), sl()),
+  );
+
+  // Profile (Firebase: user doc + received-aura history).
+  sl.registerLazySingleton<ProfileRemoteDataSource>(
+    () => ProfileRemoteDataSourceImpl(FirebaseFirestore.instance),
+  );
+  sl.registerLazySingleton<ProfileRepository>(
+    () => ProfileRepositoryImpl(sl()),
   );
 
   // Repositories (seed-backed).

@@ -2,38 +2,36 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:aura_app/core/di/injection.dart';
+import 'package:aura_app/core/models/aura_transaction.dart';
 import 'package:aura_app/core/models/user_model.dart';
 import 'package:aura_app/core/theme/app_colors.dart';
 import 'package:aura_app/core/theme/app_spacing.dart';
 import 'package:aura_app/core/theme/app_typography.dart';
-import 'package:aura_app/core/domain/entities/aura_entry.dart';
 import 'package:aura_app/core/domain/entities/person.dart';
 import 'package:aura_app/core/domain/repositories/people_repository.dart';
 import 'package:aura_app/core/widgets/app_card.dart';
+import 'package:aura_app/core/widgets/aura_transaction_tile.dart';
 import 'package:aura_app/core/widgets/avatar.dart';
-import 'package:aura_app/core/widgets/history_row.dart';
 import 'package:aura_app/core/widgets/section_label.dart';
 import 'package:aura_app/features/auth/domain/repositories/auth_repository.dart';
+import 'package:aura_app/features/profile/domain/repositories/profile_repository.dart';
 
 typedef _HomeData = ({
   UserModel? user,
   Person onDuty,
-  Map<String, Person> byId,
-  List<AuraEntry> history,
+  List<AuraTransaction> history,
 });
 
 class HomePage extends StatelessWidget {
   const HomePage({super.key});
 
   Future<_HomeData> _load() async {
-    final repo = sl<PeopleRepository>();
-    final people = await repo.getPeople();
-    return (
-      user: await sl<AuthRepository>().getUser(),
-      onDuty: await repo.getOnDuty(),
-      byId: {for (final p in people) p.id: p},
-      history: await repo.getHistory('aibek'),
-    );
+    final user = await sl<AuthRepository>().getUser();
+    final onDuty = await sl<PeopleRepository>().getOnDuty();
+    final history = user == null
+        ? <AuraTransaction>[]
+        : await sl<ProfileRepository>().getHistory(user.id);
+    return (user: user, onDuty: onDuty, history: history);
   }
 
   @override
@@ -122,21 +120,29 @@ class HomePage extends StatelessWidget {
                   ),
                 ),
 
-                const SectionLabel('Recent Aura'),
-                AppCard.flush(
-                  child: Column(
-                    children: [
-                      for (var i = 0; i < 2 && i < d.history.length; i++)
-                        HistoryRow(
-                          entry: d.history[i],
-                          giverId: d.history[i].byPersonId,
-                          giverName:
-                              d.byId[d.history[i].byPersonId]?.name ?? '?',
-                          showDivider: i == 0,
-                        ),
-                    ],
+                SectionLabel(
+                  'My Aura',
+                  trailing: GestureDetector(
+                    onTap: () => context.go('/aura/profile'),
+                    child: Text('See all', style: AppType.sm(c)),
                   ),
                 ),
+                if (d.history.isEmpty)
+                  AppCard(
+                    child: Text('No Aura yet.', style: AppType.bodyDim(c)),
+                  )
+                else
+                  AppCard.flush(
+                    child: Column(
+                      children: [
+                        for (var i = 0; i < 3 && i < d.history.length; i++)
+                          AuraTransactionTile(
+                            txn: d.history[i],
+                            divider: i != 2 && i != d.history.length - 1,
+                          ),
+                      ],
+                    ),
+                  ),
               ],
             );
           },

@@ -74,7 +74,6 @@ class LeaderboardPage extends StatelessWidget {
                               rank: i + 4,
                               user: rest[i],
                               score: state.scoreOf(rest[i]),
-                              isMe: rest[i].id == state.meId,
                               divider: i != rest.length - 1,
                             ),
                         ],
@@ -102,8 +101,8 @@ class LeaderboardPage extends StatelessWidget {
   }
 }
 
-void _openIfMe(BuildContext context, bool isMe) {
-  if (isMe) context.go('/aura/profile');
+void _openProfile(BuildContext context, UserModel user) {
+  context.push('/aura/profile/${user.id}');
 }
 
 class _Podium extends StatelessWidget {
@@ -120,7 +119,6 @@ class _Podium extends StatelessWidget {
             rank: rank,
             height: h,
             score: state.scoreOf(top3[i]),
-            isMe: top3[i].id == state.meId,
           ),
         );
     return Row(
@@ -139,13 +137,11 @@ class _Plinth extends StatelessWidget {
   final int rank;
   final double height;
   final int score;
-  final bool isMe;
   const _Plinth({
     required this.user,
     required this.rank,
     required this.height,
     required this.score,
-    required this.isMe,
   });
 
   @override
@@ -157,7 +153,7 @@ class _Plinth extends StatelessWidget {
       _ => const Color(0xFFD8A06B),
     };
     return GestureDetector(
-      onTap: () => _openIfMe(context, isMe),
+      onTap: () => _openProfile(context, user),
       child: Column(
         children: [
           Avatar(
@@ -203,13 +199,11 @@ class _RestRow extends StatelessWidget {
   final int rank;
   final UserModel user;
   final int score;
-  final bool isMe;
   final bool divider;
   const _RestRow({
     required this.rank,
     required this.user,
     required this.score,
-    required this.isMe,
     required this.divider,
   });
 
@@ -217,7 +211,7 @@ class _RestRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final c = Theme.of(context).extension<AppColors>()!;
     return GestureDetector(
-      onTap: () => _openIfMe(context, isMe),
+      onTap: () => _openProfile(context, user),
       behavior: HitTestBehavior.opaque,
       child: Container(
         padding: const EdgeInsets.all(AppSpacing.s4),
@@ -274,7 +268,7 @@ class _YourRank extends StatelessWidget {
     return AppCard(
       color: c.surface2,
       padding: const EdgeInsets.all(AppSpacing.s4),
-      onTap: () => context.go('/aura/profile'),
+      onTap: () => context.push('/aura/profile/${user.id}'),
       child: Row(
         children: [
           SizedBox(
