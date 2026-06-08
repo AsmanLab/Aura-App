@@ -1,15 +1,19 @@
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:aura_app/core/theme/app_colors.dart';
 import 'package:aura_app/core/theme/app_gradients.dart';
 import 'package:aura_app/core/theme/app_typography.dart';
+import 'package:aura_app/features/auth/presentation/auth_providers.dart';
 
 /// Bottom-tab scaffold + Award FAB (commands/02, §6.0). Custom bar — no
 /// Material `NavigationBar` tint/ripple.
-class AppShell extends StatelessWidget {
+///
+/// Mentor mode: the Award FAB only shows for users whose role can award.
+class AppShell extends ConsumerWidget {
   final StatefulNavigationShell shell;
   const AppShell({super.key, required this.shell});
 
@@ -20,13 +24,15 @@ class AppShell extends StatelessWidget {
   ];
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final c = Theme.of(context).extension<AppColors>()!;
+    final canAward =
+        ref.watch(currentUserProvider).valueOrNull?.canAward ?? false;
     return Scaffold(
       backgroundColor: c.bg,
       extendBody: true,
       body: shell,
-      floatingActionButton: shell.currentIndex == 0
+      floatingActionButton: (shell.currentIndex == 0 && canAward)
           ? _AwardFab(onTap: () => context.push('/aura/award'))
           : null,
       bottomNavigationBar: _BottomBar(

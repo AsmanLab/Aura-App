@@ -1,37 +1,45 @@
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-import 'package:aura_app/core/domain/entities/person.dart';
-import 'package:aura_app/core/domain/repositories/people_repository.dart';
+import 'package:aura_app/core/models/user_model.dart';
 import 'package:aura_app/core/models/enums.dart';
+import '../../domain/repositories/leaderboard_repository.dart';
 
 class LeaderboardState extends Equatable {
   final LbFilter filter;
-  final List<Person> ranked;
+  final List<UserModel> users;
+  final String? meId;
   final bool loading;
 
   const LeaderboardState({
     this.filter = LbFilter.allTime,
-    this.ranked = const [],
+    this.users = const [],
+    this.meId,
     this.loading = true,
   });
 
+  /// Score shown for the active period.
+  int scoreOf(UserModel u) =>
+      filter == LbFilter.week ? u.currentWeekAura : u.totalAura;
+
   LeaderboardState copyWith({
     LbFilter? filter,
-    List<Person>? ranked,
+    List<UserModel>? users,
+    String? meId,
     bool? loading,
   }) => LeaderboardState(
     filter: filter ?? this.filter,
-    ranked: ranked ?? this.ranked,
+    users: users ?? this.users,
+    meId: meId ?? this.meId,
     loading: loading ?? this.loading,
   );
 
   @override
-  List<Object?> get props => [filter, ranked, loading];
+  List<Object?> get props => [filter, users, meId, loading];
 }
 
 class LeaderboardCubit extends Cubit<LeaderboardState> {
-  final PeopleRepository _repo;
+  final LeaderboardRepository _repo;
 
   LeaderboardCubit(this._repo) : super(const LeaderboardState()) {
     _load(LbFilter.allTime);
@@ -44,7 +52,12 @@ class LeaderboardCubit extends Cubit<LeaderboardState> {
 
   Future<void> _load(LbFilter filter) async {
     emit(state.copyWith(filter: filter, loading: true));
-    final ranked = await _repo.getLeaderboard(filter);
-    emit(state.copyWith(ranked: ranked, loading: false));
+    final users = await _repo.getLeaderboard(filter);
+    if (isClosed) return;
+    emit(state.copyWith(
+      users: users,
+      meId: _repo.currentUserId,
+      loading: false,
+    ));
   }
 }

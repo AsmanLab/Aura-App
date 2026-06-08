@@ -91,8 +91,12 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
       'photoURL': user.photoURL,
       'currentWeekAura': 0,
       'totalAura': 0,
+      'role': 'intern', // default; an admin promotes to mentor
+      'position': '',
       'lastRouletteDate': null,
       'createdAt': FieldValue.serverTimestamp(),
+      'schemaVersion': 1,
+      'metadata': <String, dynamic>{},
     });
   }
 

@@ -1,6 +1,14 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get_it/get_it.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../features/award/data/datasources/award_remote_data_source.dart';
+import '../../features/award/data/repositories/award_repository_impl.dart';
+import '../../features/award/domain/repositories/award_repository.dart';
+import '../../features/leaderboard/data/datasources/leaderboard_remote_data_source.dart';
+import '../../features/leaderboard/data/repositories/leaderboard_repository_impl.dart';
+import '../../features/leaderboard/domain/repositories/leaderboard_repository.dart';
 import 'package:aura_app/core/data/repositories/seed_duty_repository.dart';
 import 'package:aura_app/core/data/repositories/seed_knowledge_repository.dart';
 import 'package:aura_app/core/data/repositories/seed_people_repository.dart';
@@ -33,6 +41,22 @@ Future<void> setupDi() async {
     () => AuthRepositoryImpl(sl()),
   );
   sl.registerFactory<AuthCubit>(() => AuthCubit(sl()));
+
+  // Leaderboard (Firebase users).
+  sl.registerLazySingleton<LeaderboardRemoteDataSource>(
+    () => LeaderboardRemoteDataSourceImpl(FirebaseFirestore.instance),
+  );
+  sl.registerLazySingleton<LeaderboardRepository>(
+    () => LeaderboardRepositoryImpl(sl(), FirebaseAuth.instance),
+  );
+
+  // Award (Firebase: write transaction + increment recipient).
+  sl.registerLazySingleton<AwardRemoteDataSource>(
+    () => AwardRemoteDataSourceImpl(FirebaseFirestore.instance),
+  );
+  sl.registerLazySingleton<AwardRepository>(
+    () => AwardRepositoryImpl(sl(), sl()),
+  );
 
   // Repositories (seed-backed).
   sl.registerLazySingleton<PeopleRepository>(() => SeedPeopleRepository());

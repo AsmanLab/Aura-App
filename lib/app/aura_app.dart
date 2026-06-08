@@ -5,7 +5,6 @@ import 'package:aura_app/features/auth/presentation/pages/splash_screen.dart';
 import 'package:aura_app/core/theme/app_theme.dart';
 import 'package:aura_app/core/di/injection.dart';
 import 'package:aura_app/core/router/app_router.dart';
-import 'package:aura_app/features/debug/seed_debug_screen.dart';
 import 'package:aura_app/core/settings/locale_cubit.dart';
 import 'package:aura_app/core/settings/theme_cubit.dart';
 import 'package:aura_app/features/profile/presentation/pages/style_gallery_screen.dart';
@@ -81,8 +80,7 @@ class _AuraAppState extends ConsumerState<AuraApp> {
         // Auth-free routes. The app ('/aura/*') now requires a session.
         final isPublic = path == '/login' ||
             path == '/splash' ||
-            path == '/style-gallery' ||
-            path == '/debug-seed';
+            path == '/style-gallery';
         return authState.when(
           // Auth resolved: leave the splash for the right destination.
           data: (isAuthenticated) {
@@ -118,11 +116,6 @@ class _AuraAppState extends ConsumerState<AuraApp> {
         GoRoute(
           path: '/style-gallery',
           builder: (context, state) => const StyleGalleryScreen(),
-        ),
-        // Stage-3 seed data dump (debug). Remove before release.
-        GoRoute(
-          path: '/debug-seed',
-          builder: (context, state) => const SeedDebugScreen(),
         ),
         // The Aura app (auth-gated), mounted at /aura/*.
         ...auraRoutes(),

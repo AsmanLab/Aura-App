@@ -25,8 +25,16 @@ class AwardPage extends StatelessWidget {
       backgroundColor: c.bg,
       body: SafeArea(
         child: BlocConsumer<AwardCubit, AwardState>(
-          listenWhen: (p, n) => !p.submitted && n.submitted,
+          listenWhen: (p, n) =>
+              (!p.submitted && n.submitted) ||
+              (p.error != n.error && n.error != null),
           listener: (context, state) async {
+            if (state.error != null) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text(state.error!), backgroundColor: c.heart),
+              );
+              return;
+            }
             HapticFeedback.lightImpact();
             await showDialog(
               context: context,
@@ -37,6 +45,12 @@ class AwardPage extends StatelessWidget {
           },
           builder: (context, state) {
             final cubit = context.read<AwardCubit>();
+            if (state.loading) {
+              return const Center(child: CircularProgressIndicator());
+            }
+            if (!state.canAward) {
+              return _MentorsOnlyView(onClose: () => context.pop());
+            }
             return Column(
               children: [
                 // header
@@ -107,9 +121,12 @@ class AwardPage extends StatelessWidget {
                       const Spacer(),
                       _PrimaryButton(
                         label: state.step == 3
-                            ? 'Award +${state.points}'
+                            ? (state.submitting
+                                ? 'Awarding…'
+                                : 'Award ${state.points >= 0 ? '+' : ''}'
+                                    '${state.points}')
                             : 'Continue',
-                        enabled: state.canContinue,
+                        enabled: state.canContinue && !state.submitting,
                         onTap: () =>
                             state.step == 3 ? cubit.submit() : cubit.next(),
                       ),
@@ -141,31 +158,39 @@ class _StepBody extends StatelessWidget {
           children: [
             Text('Who is it for?', style: AppType.h2(c)),
             const SizedBox(height: AppSpacing.s4),
-            for (final p in state.interns)
+            for (final u in state.recipients)
               Padding(
                 padding: const EdgeInsets.only(bottom: AppSpacing.s3),
                 child: AppCard(
-                  onTap: () => cubit.selectIntern(p.id),
+                  onTap: () => cubit.selectRecipient(u.id),
                   border: Border.all(
-                    color: state.internId == p.id ? c.accentSolid : c.border,
+                    color:
+                        state.recipientId == u.id ? c.accentSolid : c.border,
                   ),
                   child: Row(
                     children: [
-                      Avatar(id: p.id, name: p.name, size: 40),
+                      Avatar(
+                        id: u.id,
+                        name: u.displayName,
+                        photoUrl: u.photoURL,
+                        size: 40,
+                      ),
                       const SizedBox(width: AppSpacing.s3),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(p.name,
+                            Text(u.displayName,
                                 style: AppType.h3(c),
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis),
-                            Text(p.position, style: AppType.sm(c)),
+                            Text(u.email,
+                                style: AppType.sm(c),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis),
                           ],
                         ),
                       ),
-                      Text('${p.hearts}/8', style: AppType.number(13, c)),
                     ],
                   ),
                 ),
@@ -178,6 +203,9 @@ class _StepBody extends StatelessWidget {
           children: [
             Text('What for?', style: AppType.h2(c)),
             const SizedBox(height: AppSpacing.s4),
+            // Tags first — each category is its own selectable tag.
+            Text('TAGS', style: AppType.label(c)),
+            const SizedBox(height: AppSpacing.s3),
             Wrap(
               spacing: AppSpacing.s2,
               runSpacing: AppSpacing.s2,
@@ -203,64 +231,10 @@ class _StepBody extends StatelessWidget {
                 ),
               ),
             ],
-          ],
-        );
-      case 2:
-        return ListView(
-          padding: pad,
-          children: [
-            Text('How much?', style: AppType.h2(c)),
+            // Comment after the tags.
             const SizedBox(height: AppSpacing.s5),
-            Center(child: AuraPoints(state.points, size: 56)),
-            const SizedBox(height: AppSpacing.s5),
-            Slider(
-              value: state.points.toDouble(),
-              min: 5,
-              max: 100,
-              divisions: 19,
-              activeColor: c.accentSolid,
-              onChanged: (v) => cubit.setPoints(v.round()),
-            ),
-            Wrap(
-              spacing: AppSpacing.s2,
-              children: [
-                for (final q in [10, 25, 50, 75])
-                  ActionChip(
-                    label: Text('+$q'),
-                    onPressed: () => cubit.setPoints(q),
-                  ),
-              ],
-            ),
-          ],
-        );
-      default:
-        return ListView(
-          padding: pad,
-          children: [
-            Text('Review', style: AppType.h2(c)),
-            const SizedBox(height: AppSpacing.s4),
-            AppCard(
-              child: Row(
-                children: [
-                  if (state.intern != null)
-                    Avatar(
-                      id: state.intern!.id,
-                      name: state.intern!.name,
-                      size: 40,
-                    ),
-                  const SizedBox(width: AppSpacing.s3),
-                  Expanded(
-                    child: Text(state.intern?.name ?? '',
-                        style: AppType.h3(c)),
-                  ),
-                  if (state.category != null)
-                    CategoryTag(cat: state.category!),
-                  const SizedBox(width: AppSpacing.s3),
-                  AuraPoints(state.points),
-                ],
-              ),
-            ),
-            const SizedBox(height: AppSpacing.s4),
+            Text('COMMENT', style: AppType.label(c)),
+            const SizedBox(height: AppSpacing.s3),
             TextField(
               style: AppType.body(c),
               onChanged: cubit.setComment,
@@ -276,23 +250,157 @@ class _StepBody extends StatelessWidget {
                 ),
               ),
             ),
-            const SizedBox(height: AppSpacing.s4),
-            AppCard(
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text('Attach Linear issue', style: AppType.body(c)),
-                  Switch(
-                    value: state.attachLinear,
-                    activeThumbColor: c.accentSolid,
-                    onChanged: cubit.toggleLinear,
+          ],
+        );
+      case 2:
+        return ListView(
+          padding: pad,
+          children: [
+            Text('How much?', style: AppType.h2(c)),
+            const SizedBox(height: AppSpacing.s7),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                _StepperButton(
+                  icon: Icons.chevron_left,
+                  enabled: state.points > AwardCubit.minPoints,
+                  onTap: () => cubit.setPoints(state.points - 1),
+                ),
+                SizedBox(
+                  width: 96,
+                  child: Center(child: AuraPoints(state.points, size: 56)),
+                ),
+                _StepperButton(
+                  icon: Icons.chevron_right,
+                  enabled: state.points < AwardCubit.maxPoints,
+                  onTap: () => cubit.setPoints(state.points + 1),
+                ),
+              ],
+            ),
+            const SizedBox(height: AppSpacing.s7),
+            Center(child: Text('TEMPLATES', style: AppType.label(c))),
+            const SizedBox(height: AppSpacing.s3),
+            Wrap(
+              alignment: WrapAlignment.center,
+              spacing: AppSpacing.s2,
+              runSpacing: AppSpacing.s2,
+              children: [
+                for (final q in [-10, -5, 5, 10])
+                  ActionChip(
+                    label: Text(q > 0 ? '+$q' : '$q'),
+                    onPressed: () => cubit.setPoints(q),
                   ),
-                ],
-              ),
+              ],
             ),
           ],
         );
+      default:
+        return ListView(
+          padding: pad,
+          children: [
+            Text('Review', style: AppType.h2(c)),
+            const SizedBox(height: AppSpacing.s4),
+            AppCard(
+              child: Row(
+                children: [
+                  if (state.recipient != null)
+                    Avatar(
+                      id: state.recipient!.id,
+                      name: state.recipient!.displayName,
+                      photoUrl: state.recipient!.photoURL,
+                      size: 40,
+                    ),
+                  const SizedBox(width: AppSpacing.s3),
+                  Expanded(
+                    child: Text(state.recipient?.displayName ?? '',
+                        style: AppType.h3(c),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis),
+                  ),
+                  if (state.category != null)
+                    CategoryTag(cat: state.category!),
+                  const SizedBox(width: AppSpacing.s3),
+                  AuraPoints(state.points),
+                ],
+              ),
+            ),
+            if (state.comment.trim().isNotEmpty) ...[
+              const SizedBox(height: AppSpacing.s4),
+              AppCard(
+                child: Text(state.comment.trim(), style: AppType.body(c)),
+              ),
+            ],
+          ],
+        );
     }
+  }
+}
+
+class _StepperButton extends StatelessWidget {
+  final IconData icon;
+  final bool enabled;
+  final VoidCallback onTap;
+  const _StepperButton({
+    required this.icon,
+    required this.enabled,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final c = Theme.of(context).extension<AppColors>()!;
+    return Opacity(
+      opacity: enabled ? 1 : 0.35,
+      child: GestureDetector(
+        onTap: enabled ? onTap : null,
+        child: Container(
+          width: 48,
+          height: 48,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: c.surface2,
+            shape: BoxShape.circle,
+            border: Border.all(color: c.border),
+          ),
+          child: Icon(icon, color: c.text),
+        ),
+      ),
+    );
+  }
+}
+
+class _MentorsOnlyView extends StatelessWidget {
+  final VoidCallback onClose;
+  const _MentorsOnlyView({required this.onClose});
+
+  @override
+  Widget build(BuildContext context) {
+    final c = Theme.of(context).extension<AppColors>()!;
+    return Padding(
+      padding: const EdgeInsets.all(AppSpacing.s6),
+      child: Column(
+        children: [
+          Align(
+            alignment: Alignment.centerLeft,
+            child: IconButton(
+              onPressed: onClose,
+              icon: Icon(Icons.close, color: c.text),
+            ),
+          ),
+          const Spacer(),
+          Icon(Icons.workspace_premium_outlined, size: 56, color: c.textFaint),
+          const SizedBox(height: AppSpacing.s4),
+          Text('Mentors only', style: AppType.h2(c)),
+          const SizedBox(height: AppSpacing.s2),
+          Text(
+            'Only mentors can award Aura points.',
+            textAlign: TextAlign.center,
+            style: AppType.bodyDim(c),
+          ),
+          const Spacer(),
+        ],
+      ),
+    );
   }
 }
 

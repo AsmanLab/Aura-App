@@ -2,11 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
+import 'package:aura_app/core/models/user_model.dart';
+import 'package:aura_app/core/models/enums.dart';
 import 'package:aura_app/core/theme/app_colors.dart';
 import 'package:aura_app/core/theme/app_spacing.dart';
 import 'package:aura_app/core/theme/app_typography.dart';
-import 'package:aura_app/core/domain/entities/person.dart';
-import 'package:aura_app/core/models/enums.dart';
 import 'package:aura_app/core/widgets/app_card.dart';
 import 'package:aura_app/core/widgets/aura_value.dart';
 import 'package:aura_app/core/widgets/avatar.dart';
@@ -25,13 +25,13 @@ class LeaderboardPage extends StatelessWidget {
         bottom: false,
         child: BlocBuilder<LeaderboardCubit, LeaderboardState>(
           builder: (context, state) {
-            if (state.loading && state.ranked.isEmpty) {
+            if (state.loading && state.users.isEmpty) {
               return const Center(child: CircularProgressIndicator());
             }
-            final ranked = state.ranked;
-            final meIndex = ranked.indexWhere((p) => p.isYou);
-            final top3 = ranked.take(3).toList();
-            final rest = ranked.skip(3).toList();
+            final users = state.users;
+            final meIndex = users.indexWhere((u) => u.id == state.meId);
+            final top3 = users.take(3).toList();
+            final rest = users.skip(3).toList();
 
             return Stack(
               children: [
@@ -55,7 +55,16 @@ class LeaderboardPage extends StatelessWidget {
                       ],
                     ),
                     const SizedBox(height: AppSpacing.s6),
-                    if (top3.length == 3) _Podium(top3: top3),
+                    if (users.isEmpty)
+                      Padding(
+                        padding: const EdgeInsets.only(top: AppSpacing.s8),
+                        child: Center(
+                          child: Text('No users yet.',
+                              style: AppType.bodyDim(c)),
+                        ),
+                      ),
+                    if (top3.length == 3)
+                      _Podium(top3: top3, state: state),
                     const SizedBox(height: AppSpacing.s5),
                     AppCard.flush(
                       child: Column(
@@ -63,7 +72,9 @@ class LeaderboardPage extends StatelessWidget {
                           for (var i = 0; i < rest.length; i++)
                             _RestRow(
                               rank: i + 4,
-                              person: rest[i],
+                              user: rest[i],
+                              score: state.scoreOf(rest[i]),
+                              isMe: rest[i].id == state.meId,
                               divider: i != rest.length - 1,
                             ),
                         ],
@@ -76,7 +87,11 @@ class LeaderboardPage extends StatelessWidget {
                     left: AppSpacing.screenPad,
                     right: AppSpacing.screenPad,
                     bottom: 100,
-                    child: _YourRank(rank: meIndex + 1, person: ranked[meIndex]),
+                    child: _YourRank(
+                      rank: meIndex + 1,
+                      user: users[meIndex],
+                      score: state.scoreOf(users[meIndex]),
+                    ),
                   ),
               ],
             );
@@ -87,29 +102,51 @@ class LeaderboardPage extends StatelessWidget {
   }
 }
 
+void _openIfMe(BuildContext context, bool isMe) {
+  if (isMe) context.go('/aura/profile');
+}
+
 class _Podium extends StatelessWidget {
-  final List<Person> top3;
-  const _Podium({required this.top3});
+  final List<UserModel> top3;
+  final LeaderboardState state;
+  const _Podium({required this.top3, required this.state});
 
   @override
   Widget build(BuildContext context) {
     // Visual order: 2nd, 1st, 3rd.
+    Widget plinth(int i, int rank, double h) => Expanded(
+          child: _Plinth(
+            user: top3[i],
+            rank: rank,
+            height: h,
+            score: state.scoreOf(top3[i]),
+            isMe: top3[i].id == state.meId,
+          ),
+        );
     return Row(
       crossAxisAlignment: CrossAxisAlignment.end,
       children: [
-        Expanded(child: _Plinth(person: top3[1], rank: 2, height: 80)),
-        Expanded(child: _Plinth(person: top3[0], rank: 1, height: 104)),
-        Expanded(child: _Plinth(person: top3[2], rank: 3, height: 64)),
+        plinth(1, 2, 80),
+        plinth(0, 1, 104),
+        plinth(2, 3, 64),
       ],
     );
   }
 }
 
 class _Plinth extends StatelessWidget {
-  final Person person;
+  final UserModel user;
   final int rank;
   final double height;
-  const _Plinth({required this.person, required this.rank, required this.height});
+  final int score;
+  final bool isMe;
+  const _Plinth({
+    required this.user,
+    required this.rank,
+    required this.height,
+    required this.score,
+    required this.isMe,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -120,23 +157,24 @@ class _Plinth extends StatelessWidget {
       _ => const Color(0xFFD8A06B),
     };
     return GestureDetector(
-      onTap: () => context.push('/aura/profile/${person.id}'),
+      onTap: () => _openIfMe(context, isMe),
       child: Column(
         children: [
           Avatar(
-            id: person.id,
-            name: person.name,
+            id: user.id,
+            name: user.displayName,
+            photoUrl: user.photoURL,
             size: rank == 1 ? 64 : 52,
             ring: rank == 1,
           ),
           const SizedBox(height: AppSpacing.s2),
           Text(
-            person.name.split(' ').first,
+            user.displayName.split(' ').first,
             style: AppType.sm(c).copyWith(color: c.text),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),
-          AuraValue(person.aura, size: 18, showUnit: false),
+          AuraValue(score, size: 18, showUnit: false),
           const SizedBox(height: AppSpacing.s2),
           Container(
             height: height,
@@ -163,15 +201,23 @@ class _Plinth extends StatelessWidget {
 
 class _RestRow extends StatelessWidget {
   final int rank;
-  final Person person;
+  final UserModel user;
+  final int score;
+  final bool isMe;
   final bool divider;
-  const _RestRow({required this.rank, required this.person, required this.divider});
+  const _RestRow({
+    required this.rank,
+    required this.user,
+    required this.score,
+    required this.isMe,
+    required this.divider,
+  });
 
   @override
   Widget build(BuildContext context) {
     final c = Theme.of(context).extension<AppColors>()!;
     return GestureDetector(
-      onTap: () => context.push('/aura/profile/${person.id}'),
+      onTap: () => _openIfMe(context, isMe),
       behavior: HitTestBehavior.opaque,
       child: Container(
         padding: const EdgeInsets.all(AppSpacing.s4),
@@ -188,18 +234,23 @@ class _RestRow extends StatelessWidget {
               ),
             ),
             const SizedBox(width: AppSpacing.s2),
-            Avatar(id: person.id, name: person.name, size: 40),
+            Avatar(
+              id: user.id,
+              name: user.displayName,
+              photoUrl: user.photoURL,
+              size: 40,
+            ),
             const SizedBox(width: AppSpacing.s3),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(person.name, style: AppType.h3(c)),
-                  Text(person.position, style: AppType.sm(c)),
+                  Text(user.displayName, style: AppType.h3(c)),
+                  Text(user.email, style: AppType.sm(c)),
                 ],
               ),
             ),
-            AuraValue(person.aura, size: 18, showUnit: false),
+            AuraValue(score, size: 18, showUnit: false),
           ],
         ),
       ),
@@ -209,8 +260,13 @@ class _RestRow extends StatelessWidget {
 
 class _YourRank extends StatelessWidget {
   final int rank;
-  final Person person;
-  const _YourRank({required this.rank, required this.person});
+  final UserModel user;
+  final int score;
+  const _YourRank({
+    required this.rank,
+    required this.user,
+    required this.score,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -218,6 +274,7 @@ class _YourRank extends StatelessWidget {
     return AppCard(
       color: c.surface2,
       padding: const EdgeInsets.all(AppSpacing.s4),
+      onTap: () => context.go('/aura/profile'),
       child: Row(
         children: [
           SizedBox(
@@ -225,19 +282,21 @@ class _YourRank extends StatelessWidget {
             child: Text('$rank', style: AppType.number(15, c)),
           ),
           const SizedBox(width: AppSpacing.s2),
-          Avatar(id: person.id, name: person.name, size: 40, ring: true),
+          Avatar(
+            id: user.id,
+            name: user.displayName,
+            photoUrl: user.photoURL,
+            size: 40,
+            ring: true,
+          ),
           const SizedBox(width: AppSpacing.s3),
           Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('You · ${person.name.split(' ').first}',
-                    style: AppType.h3(c)),
-                Text('Up 2 places this week', style: AppType.sm(c)),
-              ],
+            child: Text(
+              'You · ${user.displayName.split(' ').first}',
+              style: AppType.h3(c),
             ),
           ),
-          AuraValue(person.aura, size: 18, showUnit: false),
+          AuraValue(score, size: 18, showUnit: false),
         ],
       ),
     );

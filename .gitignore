@@ -43,3 +43,7 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Firebase admin / seed scripts (never commit secrets)
+tools/seed/serviceAccountKey.json
+tools/seed/node_modules/

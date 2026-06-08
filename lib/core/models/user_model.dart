@@ -1,5 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
+import 'enums.dart';
+
 class UserModel {
   final String id;
   final String displayName;
@@ -7,8 +9,19 @@ class UserModel {
   final String? photoURL;
   final int currentWeekAura;
   final int totalAura;
+  final Role role;
+
+  /// Job title, e.g. "Frontend Intern". Free text; defaults to the role label.
+  final String position;
+
   final DateTime? lastRouletteDate;
   final DateTime createdAt;
+
+  /// Schema version for forward migrations. Bump when the doc shape changes.
+  final int schemaVersion;
+
+  /// Forward-compat bucket for experimental/not-yet-typed fields.
+  final Map<String, dynamic> metadata;
 
   UserModel({
     required this.id,
@@ -17,9 +30,18 @@ class UserModel {
     this.photoURL,
     required this.currentWeekAura,
     required this.totalAura,
+    this.role = Role.intern,
+    this.position = '',
     this.lastRouletteDate,
     required this.createdAt,
+    this.schemaVersion = 1,
+    this.metadata = const {},
   });
+
+  bool get canAward => role.canAward;
+
+  /// Falls back to the role's label when no explicit position is set.
+  String get positionLabel => position.isNotEmpty ? position : role.label;
 
   factory UserModel.fromMap(Map<String, dynamic> map, String id) {
     return UserModel(
@@ -29,8 +51,13 @@ class UserModel {
       photoURL: map['photoURL'],
       currentWeekAura: map['currentWeekAura'] ?? 0,
       totalAura: map['totalAura'] ?? 0,
+      role: Role.values.asNameMap()[map['role']] ?? Role.intern,
+      position: map['position'] ?? '',
       lastRouletteDate: (map['lastRouletteDate'] as Timestamp?)?.toDate(),
-      createdAt: (map['createdAt'] as Timestamp).toDate(),
+      createdAt:
+          (map['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
+      schemaVersion: map['schemaVersion'] ?? 1,
+      metadata: Map<String, dynamic>.from(map['metadata'] ?? const {}),
     );
   }
 
@@ -41,10 +68,13 @@ class UserModel {
       'photoURL': photoURL,
       'currentWeekAura': currentWeekAura,
       'totalAura': totalAura,
-      'lastRouletteDate': lastRouletteDate != null 
-          ? Timestamp.fromDate(lastRouletteDate!) 
-          : null,
+      'role': role.name,
+      'position': position,
+      'lastRouletteDate':
+          lastRouletteDate != null ? Timestamp.fromDate(lastRouletteDate!) : null,
       'createdAt': Timestamp.fromDate(createdAt),
+      'schemaVersion': schemaVersion,
+      'metadata': metadata,
     };
   }
 
@@ -54,7 +84,11 @@ class UserModel {
     String? photoURL,
     int? currentWeekAura,
     int? totalAura,
+    Role? role,
+    String? position,
     DateTime? lastRouletteDate,
+    int? schemaVersion,
+    Map<String, dynamic>? metadata,
   }) {
     return UserModel(
       id: id,
@@ -63,8 +97,12 @@ class UserModel {
       photoURL: photoURL ?? this.photoURL,
       currentWeekAura: currentWeekAura ?? this.currentWeekAura,
       totalAura: totalAura ?? this.totalAura,
+      role: role ?? this.role,
+      position: position ?? this.position,
       lastRouletteDate: lastRouletteDate ?? this.lastRouletteDate,
       createdAt: createdAt,
+      schemaVersion: schemaVersion ?? this.schemaVersion,
+      metadata: metadata ?? this.metadata,
     );
   }
 }
