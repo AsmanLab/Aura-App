@@ -130,9 +130,80 @@ class _MyProfileView extends StatelessWidget {
                 ],
               ),
             ),
+            const SizedBox(height: AppSpacing.s5),
+            AppCard.flush(
+              child: Column(
+                children: [
+                  _NavRow(
+                    icon: Icons.shield_rounded,
+                    label: 'Duty',
+                    onTap: () => context.push('/aura/duty'),
+                  ),
+                  _NavRow(
+                    icon: Icons.menu_book_rounded,
+                    label: 'Knowledge',
+                    onTap: () => context.push('/aura/knowledge'),
+                  ),
+                  _NavRow(
+                    icon: Icons.settings_rounded,
+                    label: 'Settings',
+                    onTap: () => context.push('/aura/settings'),
+                    divider: false,
+                  ),
+                ],
+              ),
+            ),
           ],
         );
       },
+    );
+  }
+}
+
+class _NavRow extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+  final bool divider;
+
+  const _NavRow({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+    this.divider = true,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final c = Theme.of(context).extension<AppColors>()!;
+    return GestureDetector(
+      onTap: onTap,
+      behavior: HitTestBehavior.opaque,
+      child: Container(
+        padding: const EdgeInsets.all(AppSpacing.s4),
+        decoration: BoxDecoration(
+          border: divider
+              ? Border(bottom: BorderSide(color: c.border))
+              : null,
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 36,
+              height: 36,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: c.accentSoft,
+                borderRadius: BorderRadius.circular(AppSpacing.rSm),
+              ),
+              child: Icon(icon, size: 18, color: c.accentSolid),
+            ),
+            const SizedBox(width: AppSpacing.s3),
+            Expanded(child: Text(label, style: AppType.h3(c))),
+            Icon(Icons.chevron_right, color: c.textFaint),
+          ],
+        ),
+      ),
     );
   }
 }

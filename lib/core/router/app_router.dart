@@ -44,25 +44,6 @@ List<RouteBase> auraRoutes() => [
       StatefulShellBranch(
         routes: [
           GoRoute(
-            path: '/aura/duty',
-            builder: (context, state) => BlocProvider(
-              create: (_) => DutyCubit(sl()),
-              child: const DutyPage(),
-            ),
-          ),
-        ],
-      ),
-      StatefulShellBranch(
-        routes: [
-          GoRoute(
-            path: '/aura/knowledge',
-            builder: (context, state) => const KnowledgePage(),
-          ),
-        ],
-      ),
-      StatefulShellBranch(
-        routes: [
-          GoRoute(
             path: '/aura/profile',
             builder: (context, state) => const ProfilePage(),
           ),
@@ -71,7 +52,23 @@ List<RouteBase> auraRoutes() => [
     ],
   ),
 
-  // Pushed routes (cover the tab bar).
+  // Pushed routes (cover the tab bar). Duty + Knowledge moved off the navbar,
+  // opened from the Profile page.
+  GoRoute(
+    path: '/aura/duty',
+    pageBuilder: (context, state) => _slideRight(
+      state,
+      BlocProvider(
+        create: (_) => DutyCubit(sl()),
+        child: const DutyPage(),
+      ),
+    ),
+  ),
+  GoRoute(
+    path: '/aura/knowledge',
+    pageBuilder: (context, state) =>
+        _slideRight(state, const KnowledgePage()),
+  ),
   GoRoute(
     path: '/aura/profile/:id',
     builder: (context, state) =>

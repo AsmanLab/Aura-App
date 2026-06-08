@@ -51,7 +51,18 @@ class DutyPage extends StatelessWidget {
                     120,
                   ),
                   children: [
-                    Text('Duty', style: AppType.h1(c)),
+                    Row(
+                      children: [
+                        IconButton(
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(),
+                          onPressed: () => context.pop(),
+                          icon: Icon(Icons.arrow_back, color: c.text),
+                        ),
+                        const SizedBox(width: AppSpacing.s3),
+                        Text('Duty', style: AppType.h1(c)),
+                      ],
+                    ),
                     const SizedBox(height: AppSpacing.s4),
                     AppCard(
                       color: c.success.withValues(alpha: 0.08),

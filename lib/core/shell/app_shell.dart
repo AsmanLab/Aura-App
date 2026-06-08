@@ -16,8 +16,6 @@ class AppShell extends StatelessWidget {
   static const _tabs = <({IconData icon, String label})>[
     (icon: Icons.home_rounded, label: 'Home'),
     (icon: Icons.emoji_events_rounded, label: 'Board'),
-    (icon: Icons.shield_rounded, label: 'Duty'),
-    (icon: Icons.menu_book_rounded, label: 'Knowledge'),
     (icon: Icons.person_rounded, label: 'Profile'),
   ];
 

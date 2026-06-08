@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:aura_app/core/di/injection.dart';
+import 'package:aura_app/core/models/user_model.dart';
 import 'package:aura_app/core/theme/app_colors.dart';
 import 'package:aura_app/core/theme/app_spacing.dart';
 import 'package:aura_app/core/theme/app_typography.dart';
@@ -9,15 +10,13 @@ import 'package:aura_app/core/domain/entities/aura_entry.dart';
 import 'package:aura_app/core/domain/entities/person.dart';
 import 'package:aura_app/core/domain/repositories/people_repository.dart';
 import 'package:aura_app/core/widgets/app_card.dart';
-import 'package:aura_app/core/widgets/aura_progress_bar.dart';
-import 'package:aura_app/core/widgets/aura_value.dart';
 import 'package:aura_app/core/widgets/avatar.dart';
-import 'package:aura_app/core/widgets/hearts_row.dart';
 import 'package:aura_app/core/widgets/history_row.dart';
 import 'package:aura_app/core/widgets/section_label.dart';
+import 'package:aura_app/features/auth/domain/repositories/auth_repository.dart';
 
 typedef _HomeData = ({
-  Person me,
+  UserModel? user,
   Person onDuty,
   Map<String, Person> byId,
   List<AuraEntry> history,
@@ -30,7 +29,7 @@ class HomePage extends StatelessWidget {
     final repo = sl<PeopleRepository>();
     final people = await repo.getPeople();
     return (
-      me: await repo.getMe(),
+      user: await sl<AuthRepository>().getUser(),
       onDuty: await repo.getOnDuty(),
       byId: {for (final p in people) p.id: p},
       history: await repo.getHistory('aibek'),
@@ -51,7 +50,7 @@ class HomePage extends StatelessWidget {
               return const Center(child: CircularProgressIndicator());
             }
             final d = snap.data!;
-            final trial = d.me.trial(DateTime(2026, 6, 3));
+            final firstName = d.user?.displayName.split(' ').first ?? 'there';
             return ListView(
               padding: const EdgeInsets.fromLTRB(
                 AppSpacing.screenPad,
@@ -69,10 +68,7 @@ class HomePage extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text('Wednesday, Jun 3', style: AppType.sm(c)),
-                          Text(
-                            'Hi, ${d.me.name.split(' ').first}',
-                            style: AppType.h1(c),
-                          ),
+                          Text('Hi, $firstName', style: AppType.h1(c)),
                         ],
                       ),
                     ),
@@ -85,7 +81,7 @@ class HomePage extends StatelessWidget {
 
                 const SectionLabel('On duty now'),
                 AppCard(
-                  onTap: () => context.go('/aura/duty'),
+                  onTap: () => context.push('/aura/duty'),
                   child: Row(
                     children: [
                       Avatar(id: d.onDuty.id, name: d.onDuty.name, size: 52),
@@ -122,43 +118,6 @@ class HomePage extends StatelessWidget {
                           Text('until 6 PM', style: AppType.sm(c)),
                         ],
                       ),
-                    ],
-                  ),
-                ),
-
-                const SectionLabel('My status'),
-                AppCard(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('Total Aura', style: AppType.sm(c)),
-                      const SizedBox(height: AppSpacing.s2),
-                      AuraValue(d.me.aura, size: 56),
-                      const SizedBox(height: AppSpacing.s5),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text('Hearts', style: AppType.sm(c)),
-                          Text('${d.me.hearts}/8', style: AppType.number(15, c)),
-                        ],
-                      ),
-                      const SizedBox(height: AppSpacing.s2),
-                      HeartsRow(count: d.me.hearts, size: 22),
-                      if (trial != null) ...[
-                        const SizedBox(height: AppSpacing.s5),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text('Trial', style: AppType.sm(c)),
-                            Text(
-                              '${trial.daysLeft} days left',
-                              style: AppType.number(15, c),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: AppSpacing.s2),
-                        AuraProgressBar(trial.pct * 100),
-                      ],
                     ],
                   ),
                 ),
