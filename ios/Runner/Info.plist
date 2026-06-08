@@ -40,6 +40,8 @@
 		<key>ClientID</key>
 		<string>594801867619-hkp5skuga9q2eg4cnest0pk98jbo7voh.apps.googleusercontent.com</string>
 	</dict>
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>UIApplicationSceneManifest</key>
