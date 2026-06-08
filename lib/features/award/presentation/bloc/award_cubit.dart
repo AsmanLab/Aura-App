@@ -1,9 +1,9 @@
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-import '../../../../shared/domain/entities/person.dart';
-import '../../../../shared/domain/repositories/people_repository.dart';
-import '../../../../shared/models/enums.dart';
+import 'package:aura_app/core/domain/entities/person.dart';
+import 'package:aura_app/core/domain/repositories/people_repository.dart';
+import 'package:aura_app/core/models/enums.dart';
 
 /// 4-step award draft (commands/06 §6.4). Steps: 0 intern · 1 category ·
 /// 2 points · 3 confirm.

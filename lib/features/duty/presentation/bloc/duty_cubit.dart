@@ -1,7 +1,7 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-import '../../../../shared/domain/entities/duty_day.dart';
-import '../../../../shared/domain/repositories/duty_repository.dart';
+import 'package:aura_app/core/domain/entities/duty_day.dart';
+import 'package:aura_app/core/domain/repositories/duty_repository.dart';
 
 class DutyState {
   final List<DutyDay> week;

@@ -4,8 +4,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uuid/uuid.dart';
-import '../../shared/models/aura_transaction.dart';
-import '../../shared/models/user_model.dart';
+import 'package:aura_app/core/models/aura_transaction.dart';
+import 'package:aura_app/core/models/user_model.dart';
 import '../utils/date_utils.dart';
 
 final auraServiceProvider = Provider<AuraService>((ref) => AuraService());

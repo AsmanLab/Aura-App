@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
 
-import '../../core/di/injection.dart';
-import '../../core/theme/app_colors.dart';
-import '../../core/theme/app_spacing.dart';
-import '../../core/theme/app_typography.dart';
-import '../../shared/domain/repositories/duty_repository.dart';
-import '../../shared/domain/repositories/knowledge_repository.dart';
-import '../../shared/domain/repositories/people_repository.dart';
-import '../../shared/domain/repositories/settings_repository.dart';
-import '../../shared/models/enums.dart';
+import 'package:aura_app/core/di/injection.dart';
+import 'package:aura_app/core/theme/app_colors.dart';
+import 'package:aura_app/core/theme/app_spacing.dart';
+import 'package:aura_app/core/theme/app_typography.dart';
+import 'package:aura_app/core/domain/repositories/duty_repository.dart';
+import 'package:aura_app/core/domain/repositories/knowledge_repository.dart';
+import 'package:aura_app/core/domain/repositories/people_repository.dart';
+import 'package:aura_app/core/domain/repositories/settings_repository.dart';
+import 'package:aura_app/core/models/enums.dart';
 
 /// Stage-3 exit check: pull every repository through the service locator and
 /// print what it returns. Not part of the shipped app.

@@ -2,15 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../../../core/theme/app_colors.dart';
-import '../../../../core/theme/app_spacing.dart';
-import '../../../../core/theme/app_typography.dart';
-import '../../../../shared/domain/entities/person.dart';
-import '../../../../shared/models/enums.dart';
-import '../../../../shared/widgets/app_card.dart';
-import '../../../../shared/widgets/aura_value.dart';
-import '../../../../shared/widgets/avatar.dart';
-import '../../../../shared/widgets/segmented_control.dart';
+import 'package:aura_app/core/theme/app_colors.dart';
+import 'package:aura_app/core/theme/app_spacing.dart';
+import 'package:aura_app/core/theme/app_typography.dart';
+import 'package:aura_app/core/domain/entities/person.dart';
+import 'package:aura_app/core/models/enums.dart';
+import 'package:aura_app/core/widgets/app_card.dart';
+import 'package:aura_app/core/widgets/aura_value.dart';
+import 'package:aura_app/core/widgets/avatar.dart';
+import 'package:aura_app/core/widgets/segmented_control.dart';
 import '../bloc/leaderboard_cubit.dart';
 
 class LeaderboardPage extends StatelessWidget {

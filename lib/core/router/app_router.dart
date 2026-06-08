@@ -12,8 +12,8 @@ import '../../features/knowledge/presentation/pages/knowledge_page.dart';
 import '../../features/leaderboard/presentation/bloc/leaderboard_cubit.dart';
 import '../../features/leaderboard/presentation/pages/leaderboard_page.dart';
 import '../../features/profile/presentation/pages/profile_page.dart';
-import '../../features/settings/presentation/pages/settings_page.dart';
-import '../../features/shell/presentation/pages/app_shell.dart';
+import 'package:aura_app/features/profile/presentation/pages/settings_page.dart';
+import 'package:aura_app/core/shell/app_shell.dart';
 import '../di/injection.dart';
 
 /// The spec "Aura" app, mounted under /aura/* alongside the existing Firebase

@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 
-import '../../../../core/di/injection.dart';
-import '../../../../core/theme/app_colors.dart';
-import '../../../../core/theme/app_spacing.dart';
-import '../../../../core/theme/app_typography.dart';
-import '../../../../shared/domain/entities/knowledge_doc.dart';
-import '../../../../shared/domain/repositories/knowledge_repository.dart';
+import 'package:aura_app/core/di/injection.dart';
+import 'package:aura_app/core/theme/app_colors.dart';
+import 'package:aura_app/core/theme/app_spacing.dart';
+import 'package:aura_app/core/theme/app_typography.dart';
+import 'package:aura_app/core/domain/entities/knowledge_doc.dart';
+import 'package:aura_app/core/domain/repositories/knowledge_repository.dart';
 import 'doc_icon.dart';
 
 class ArticlePage extends StatelessWidget {

@@ -2,6 +2,15 @@
 
 Guidance for working in this repo.
 
+## 🎨 Styles — READ FIRST, FOLLOW ALWAYS
+
+Before writing any UI or feature code, read **[`commands/styles.md`](commands/styles.md)** and
+follow it. It is the canonical style guide: design tokens (`AppColors`/`AppType`/`AppSpacing`/
+`AppGradients`), reusable `core/widgets/`, naming, BLoC + clean-architecture layering, and the
+golden rules (no magic numbers, no Material chrome, `const`, `package:` imports,
+`.withValues` not `.withOpacity`, guard `context` across async gaps). These rules apply to every
+change.
+
 ## What this app is
 
 **Aura** — a Flutter team-building app for giving each other "aura" points. Firebase-backed

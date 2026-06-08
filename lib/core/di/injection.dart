@@ -1,16 +1,20 @@
 import 'package:get_it/get_it.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import '../../data/repositories/seed_duty_repository.dart';
-import '../../data/repositories/seed_knowledge_repository.dart';
-import '../../data/repositories/seed_people_repository.dart';
-import '../../data/repositories/seed_settings_repository.dart';
-import '../../features/settings/presentation/bloc/locale_cubit.dart';
-import '../../features/settings/presentation/bloc/theme_cubit.dart';
-import '../../shared/domain/repositories/duty_repository.dart';
-import '../../shared/domain/repositories/knowledge_repository.dart';
-import '../../shared/domain/repositories/people_repository.dart';
-import '../../shared/domain/repositories/settings_repository.dart';
+import 'package:aura_app/core/data/repositories/seed_duty_repository.dart';
+import 'package:aura_app/core/data/repositories/seed_knowledge_repository.dart';
+import 'package:aura_app/core/data/repositories/seed_people_repository.dart';
+import 'package:aura_app/core/data/repositories/seed_settings_repository.dart';
+import '../../features/auth/data/datasources/auth_remote_data_source.dart';
+import '../../features/auth/data/repositories/auth_repository_impl.dart';
+import '../../features/auth/domain/repositories/auth_repository.dart';
+import '../../features/auth/presentation/bloc/auth_cubit.dart';
+import 'package:aura_app/core/settings/locale_cubit.dart';
+import 'package:aura_app/core/settings/theme_cubit.dart';
+import 'package:aura_app/core/domain/repositories/duty_repository.dart';
+import 'package:aura_app/core/domain/repositories/knowledge_repository.dart';
+import 'package:aura_app/core/domain/repositories/people_repository.dart';
+import 'package:aura_app/core/domain/repositories/settings_repository.dart';
 
 /// Service locator. Bind domain interfaces to seed-backed implementations here;
 /// swap to Firestore-backed impls without touching presentation.
@@ -20,6 +24,15 @@ final sl = GetIt.instance;
 Future<void> setupDi() async {
   final prefs = await SharedPreferences.getInstance();
   sl.registerSingleton<SharedPreferences>(prefs);
+
+  // Auth (Firebase + Google).
+  sl.registerLazySingleton<AuthRemoteDataSource>(
+    () => AuthRemoteDataSourceImpl(),
+  );
+  sl.registerLazySingleton<AuthRepository>(
+    () => AuthRepositoryImpl(sl()),
+  );
+  sl.registerFactory<AuthCubit>(() => AuthCubit(sl()));
 
   // Repositories (seed-backed).
   sl.registerLazySingleton<PeopleRepository>(() => SeedPeopleRepository());

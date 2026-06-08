@@ -1,21 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../../../core/di/injection.dart';
-import '../../../../core/theme/app_colors.dart';
-import '../../../../core/theme/app_spacing.dart';
-import '../../../../core/theme/app_typography.dart';
-import '../../../../shared/domain/entities/aura_entry.dart';
-import '../../../../shared/domain/entities/person.dart';
-import '../../../../shared/domain/repositories/people_repository.dart';
-import '../../../../shared/widgets/app_card.dart';
-import '../../../../shared/widgets/aura_progress_bar.dart';
-import '../../../../shared/widgets/aura_value.dart';
-import '../../../../shared/widgets/avatar.dart';
-import '../../../../shared/widgets/hearts_row.dart';
-import '../../../../shared/widgets/history_row.dart';
-import '../../../../shared/widgets/role_badge.dart';
-import '../../../../shared/widgets/section_label.dart';
+import 'package:aura_app/core/di/injection.dart';
+import 'package:aura_app/core/theme/app_colors.dart';
+import 'package:aura_app/core/theme/app_spacing.dart';
+import 'package:aura_app/core/theme/app_typography.dart';
+import 'package:aura_app/core/domain/entities/aura_entry.dart';
+import 'package:aura_app/core/domain/entities/person.dart';
+import 'package:aura_app/core/domain/repositories/people_repository.dart';
+import 'package:aura_app/core/widgets/app_card.dart';
+import 'package:aura_app/core/widgets/aura_progress_bar.dart';
+import 'package:aura_app/core/widgets/aura_value.dart';
+import 'package:aura_app/core/widgets/avatar.dart';
+import 'package:aura_app/core/widgets/hearts_row.dart';
+import 'package:aura_app/core/widgets/history_row.dart';
+import 'package:aura_app/core/widgets/role_badge.dart';
+import 'package:aura_app/core/widgets/section_label.dart';
 
 typedef _ProfileData = ({
   Person person,
