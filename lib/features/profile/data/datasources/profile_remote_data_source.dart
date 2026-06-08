@@ -7,6 +7,12 @@ import 'package:aura_app/core/models/user_model.dart';
 abstract class ProfileRemoteDataSource {
   Future<UserModel?> getUser(String id);
   Future<List<AuraTransaction>> getHistory(String userId);
+
+  /// Realtime: emits on every change to the user's received-aura history.
+  Stream<List<AuraTransaction>> watchHistory(String userId);
+
+  /// Realtime: emits on every change to the user's doc (aura totals etc).
+  Stream<UserModel?> watchUser(String id);
 }
 
 class ProfileRemoteDataSourceImpl implements ProfileRemoteDataSource {
@@ -32,5 +38,28 @@ class ProfileRemoteDataSourceImpl implements ProfileRemoteDataSource {
         .toList();
     txns.sort((a, b) => b.timestamp.compareTo(a.timestamp));
     return txns;
+  }
+
+  @override
+  Stream<List<AuraTransaction>> watchHistory(String userId) {
+    return _db
+        .collection('aura_transactions')
+        .where('toUserId', isEqualTo: userId)
+        .limit(100)
+        .snapshots()
+        .map((snap) {
+          final txns = snap.docs
+              .map((d) => AuraTransaction.fromMap(d.data(), d.id))
+              .toList();
+          txns.sort((a, b) => b.timestamp.compareTo(a.timestamp));
+          return txns;
+        });
+  }
+
+  @override
+  Stream<UserModel?> watchUser(String id) {
+    return _db.collection('users').doc(id).snapshots().map(
+          (d) => d.exists ? UserModel.fromMap(d.data()!, d.id) : null,
+        );
   }
 }

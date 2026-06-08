@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:aura_app/core/widgets/skeleton.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
@@ -30,13 +31,13 @@ class DutyPage extends StatelessWidget {
               ),
           builder: (context, peopleSnap) {
             if (!peopleSnap.hasData) {
-              return const Center(child: CircularProgressIndicator());
+              return const PageSkeleton();
             }
             final byId = peopleSnap.data!;
             return BlocBuilder<DutyCubit, DutyState>(
               builder: (context, state) {
                 if (state.loading) {
-                  return const Center(child: CircularProgressIndicator());
+                  return const PageSkeleton();
                 }
                 final onDuty = state.week.firstWhere(
                   (d) => d.isToday,

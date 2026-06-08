@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:aura_app/core/widgets/skeleton.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import 'package:aura_app/core/di/injection.dart';
@@ -50,7 +51,7 @@ class _SettingsPageState extends State<SettingsPage> {
         title: Text('Settings', style: AppType.h3(c)),
       ),
       body: !_loaded
-          ? const Center(child: CircularProgressIndicator())
+          ? const PageSkeleton()
           : ListView(
               padding: const EdgeInsets.all(AppSpacing.screenPad),
               children: [

@@ -13,4 +13,11 @@ class ProfileRepositoryImpl implements ProfileRepository {
   @override
   Future<List<AuraTransaction>> getHistory(String userId) =>
       _remote.getHistory(userId);
+
+  @override
+  Stream<List<AuraTransaction>> watchHistory(String userId) =>
+      _remote.watchHistory(userId);
+
+  @override
+  Stream<UserModel?> watchUser(String id) => _remote.watchUser(id);
 }

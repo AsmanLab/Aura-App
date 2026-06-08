@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:aura_app/core/widgets/skeleton.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
@@ -26,7 +27,7 @@ class LeaderboardPage extends StatelessWidget {
         child: BlocBuilder<LeaderboardCubit, LeaderboardState>(
           builder: (context, state) {
             if (state.loading && state.users.isEmpty) {
-              return const Center(child: CircularProgressIndicator());
+              return const PageSkeleton();
             }
             final users = state.users;
             final meIndex = users.indexWhere((u) => u.id == state.meId);

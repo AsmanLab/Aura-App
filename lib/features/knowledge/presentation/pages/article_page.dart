@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:aura_app/core/widgets/skeleton.dart';
 
 import 'package:aura_app/core/di/injection.dart';
 import 'package:aura_app/core/theme/app_colors.dart';
@@ -29,7 +30,7 @@ class ArticlePage extends StatelessWidget {
             if (snap.connectionState == ConnectionState.done) {
               return Center(child: Text('Not found', style: AppType.body(c)));
             }
-            return const Center(child: CircularProgressIndicator());
+            return const PageSkeleton();
           }
           final doc = snap.data!;
           return ListView(

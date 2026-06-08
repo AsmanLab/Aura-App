@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:aura_app/core/widgets/skeleton.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:aura_app/core/di/injection.dart';
@@ -25,7 +26,7 @@ class KnowledgePage extends StatelessWidget {
           future: sl<KnowledgeRepository>().getDocs(),
           builder: (context, snap) {
             if (!snap.hasData) {
-              return const Center(child: CircularProgressIndicator());
+              return const PageSkeleton();
             }
             final docs = snap.data!;
             final featured = docs.where((d) => d.featured).toList();

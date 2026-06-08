@@ -13,6 +13,7 @@ import 'package:aura_app/core/widgets/aura_transaction_tile.dart';
 import 'package:aura_app/core/widgets/aura_value.dart';
 import 'package:aura_app/core/widgets/avatar.dart';
 import 'package:aura_app/core/widgets/role_badge.dart';
+import 'package:aura_app/core/widgets/skeleton.dart';
 import 'package:aura_app/core/widgets/section_label.dart';
 import 'package:aura_app/features/auth/domain/repositories/auth_repository.dart';
 import 'package:aura_app/features/profile/domain/repositories/profile_repository.dart';
@@ -58,7 +59,7 @@ class _MyProfileView extends StatelessWidget {
       future: _load(),
       builder: (context, snap) {
         if (snap.connectionState != ConnectionState.done) {
-          return const Center(child: CircularProgressIndicator());
+          return const PageSkeleton(header: true);
         }
         final d = snap.data;
         if (d == null) {
@@ -146,10 +147,7 @@ class _UserProfileView extends StatelessWidget {
           slivers: [
             _ProfileSliverBar(user: user),
             if (loading)
-              const SliverFillRemaining(
-                hasScrollBody: false,
-                child: Center(child: CircularProgressIndicator()),
-              )
+              const SliverToBoxAdapter(child: PageSkeleton())
             else if (d == null)
               SliverFillRemaining(
                 hasScrollBody: false,
