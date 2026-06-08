@@ -5,6 +5,7 @@ import 'package:aura_app/features/auth/presentation/pages/splash_screen.dart';
 import 'package:aura_app/core/theme/app_theme.dart';
 import 'package:aura_app/core/di/injection.dart';
 import 'package:aura_app/core/router/app_router.dart';
+import 'package:aura_app/core/router/navigation.dart';
 import 'package:aura_app/core/settings/locale_cubit.dart';
 import 'package:aura_app/core/settings/theme_cubit.dart';
 import 'package:aura_app/features/profile/presentation/pages/style_gallery_screen.dart';
@@ -70,6 +71,7 @@ class _AuraAppState extends ConsumerState<AuraApp> {
 
   GoRouter _createRouter() {
     return GoRouter(
+      navigatorKey: rootNavigatorKey,
       // Boot to '/splash' while the persisted session is validated; redirect
       // then routes to the app ('/aura/home') or '/login'.
       initialLocation: '/splash',

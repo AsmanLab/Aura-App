@@ -1,0 +1,15 @@
+# dart run flutter_native_splash:create
+flutter_native_splash:
+  # Light background for the launch screen.
+  color: "#EEEEF2"
+  color_dark: "#08080B"
+  image: assets/brand/app_logo.png
+
+  android: true
+  ios: true
+
+  # Android 12+ uses a separate splash API.
+  android_12:
+    image: assets/brand/app_logo.png
+    color: "#EEEEF2"
+    color_dark: "#08080B"

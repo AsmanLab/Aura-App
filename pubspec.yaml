@@ -3,7 +3,7 @@ description: "Team building fun app."
 
 publish_to: 'none' 
 
-version: 1.0.0+2
+version: 1.0.0+5
 
 environment:
   sdk: ^3.8.1
@@ -37,6 +37,7 @@ dev_dependencies:
     sdk: flutter
 
   flutter_lints: ^5.0.0
+  flutter_native_splash: ^2.4.7
 
 
 flutter:

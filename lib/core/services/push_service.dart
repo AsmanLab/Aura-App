@@ -4,86 +4,55 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
-import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:go_router/go_router.dart';
+
+import 'package:aura_app/core/router/navigation.dart';
+import 'package:aura_app/core/widgets/notification_banner.dart';
 
 /// Background (app terminated/backgrounded) message handler.
 ///
-/// Must be a top-level function with @pragma('vm:entry-point') — it runs in a
-/// separate isolate. Keep it light. Registered in main.dart via
-/// `FirebaseMessaging.onBackgroundMessage`.
+/// Top-level + @pragma('vm:entry-point') — runs in its own isolate. FCM shows
+/// the system tray notification automatically when the app isn't foregrounded,
+/// so nothing is needed here. Registered in main.dart.
 @pragma('vm:entry-point')
-Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
-  // FCM already shows tray notifications when the app isn't foregrounded, so
-  // nothing is required here. Add background data processing if ever needed.
-}
+Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {}
 
-/// FCM + local-notification glue. See commands/09_push_notifications.md.
+/// FCM glue. Foreground messages show a styled in-app banner; backgrounded /
+/// terminated messages are shown by the OS (FCM), and tapping them deep-links.
 ///
-/// In-app side is wired. The platform setup is on you:
-///   - iOS: upload the APNs key to Firebase + enable Push / Background
-///     "Remote notifications" capabilities in Xcode (§3).
-///   - Deploy the `onAuraAwarded` Cloud Function that actually sends on award (§6).
+/// You still need to: upload the APNs key (iOS, §3) and deploy the
+/// `onAuraAwarded` Cloud Function that actually sends (§6) — see
+/// commands/09_push_notifications.md.
 class PushService {
   final FirebaseMessaging _fcm;
   final FirebaseFirestore _db;
   final FirebaseAuth _auth;
-  final _local = FlutterLocalNotificationsPlugin();
 
   StreamSubscription<User?>? _authSub;
 
   PushService(this._fcm, this._db, this._auth);
 
-  static const _channel = AndroidNotificationChannel(
-    'aura',
-    'Aura',
-    description: 'Aura points and team updates',
-    importance: Importance.high,
-  );
-
   Future<void> init() async {
-    // Permission prompt (iOS sheet; Android 13+ POST_NOTIFICATIONS).
-    await _fcm.requestPermission();
+    await _fcm.requestPermission(); // iOS sheet; Android 13+ POST_NOTIFICATIONS
 
-    // Local-notification setup (used to display FCM messages in foreground).
-    await _local.initialize(
-      settings: const InitializationSettings(
-        android: AndroidInitializationSettings('@mipmap/ic_launcher'),
-        iOS: DarwinInitializationSettings(),
-      ),
-      onDidReceiveNotificationResponse: (resp) {
-        // TODO(you): route from a tapped foreground notification using
-        // resp.payload (e.g. GoRouter.of(context).push(payload)).
-      },
-    );
-    await _local
-        .resolvePlatformSpecificImplementation<
-            AndroidFlutterLocalNotificationsPlugin>()
-        ?.createNotificationChannel(_channel);
-
-    // iOS: also show the system banner while in foreground.
+    // Foreground: suppress the OS banner (we show our own in-app banner).
     await _fcm.setForegroundNotificationPresentationOptions(
-      alert: true,
+      alert: false,
       badge: true,
-      sound: true,
+      sound: false,
     );
 
-    // Foreground messages → display via local notifications (FCM won't).
-    FirebaseMessaging.onMessage.listen(_showLocal);
+    FirebaseMessaging.onMessage.listen(_onForeground);
+    FirebaseMessaging.onMessageOpenedApp.listen(_onOpened);
 
-    // App opened from a background notification tap.
-    FirebaseMessaging.onMessageOpenedApp.listen(_handleTap);
-
-    // App launched from a terminated state by tapping a notification.
     final initial = await _fcm.getInitialMessage();
-    if (initial != null) _handleTap(initial);
+    if (initial != null) _onOpened(initial);
 
-    // Save the token whenever a user is signed in (login + cold start).
     _authSub = _auth.authStateChanges().listen((user) {
       if (user != null) syncToken(user.uid);
     });
   }
 
-  /// Save the device token under the user + keep it fresh.
   Future<void> syncToken(String uid) async {
     try {
       final token = await _fcm.getToken();
@@ -116,30 +85,18 @@ class PushService {
     }
   }
 
-  void _showLocal(RemoteMessage m) {
+  void _onForeground(RemoteMessage m) {
     final n = m.notification;
-    if (n == null) return;
-    _local.show(
-      id: n.hashCode,
-      title: n.title,
-      body: n.body,
-      notificationDetails: NotificationDetails(
-        android: AndroidNotificationDetails(
-          _channel.id,
-          _channel.name,
-          channelDescription: _channel.description,
-          importance: Importance.high,
-        ),
-        iOS: const DarwinNotificationDetails(),
-      ),
-      payload: m.data['route'] as String?,
+    showInAppNotification(
+      title: n?.title ?? m.data['title'] as String?,
+      body: n?.body ?? m.data['body'] as String?,
+      route: m.data['route'] as String?,
     );
   }
 
-  void _handleTap(RemoteMessage m) {
-    // TODO(you): deep-link to m.data['route'] (e.g. '/aura/profile').
-    // Needs the app's router/navigator key — wire when you add deep links.
-    debugPrint('Notification tapped, route: ${m.data['route']}');
+  void _onOpened(RemoteMessage m) {
+    final route = m.data['route'] as String?;
+    if (route != null) rootNavigatorKey.currentContext?.push(route);
   }
 
   void dispose() => _authSub?.cancel();

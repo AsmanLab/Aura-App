@@ -51,25 +51,14 @@ class HomePage extends StatelessWidget {
                   120,
                 ),
                 children: [
-                  Row(
+                  Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              DateFormat('EEEE, MMM d').format(DateTime.now()),
-                              style: AppType.sm(c),
-                            ),
-                            Text('Hi, $firstName', style: AppType.h1(c)),
-                          ],
-                        ),
+                      Text(
+                        DateFormat('EEEE, MMM d').format(DateTime.now()),
+                        style: AppType.sm(c),
                       ),
-                      IconButton(
-                        onPressed: () => context.push('/aura/settings'),
-                        icon: Icon(Icons.notifications_none, color: c.text),
-                      ),
+                      Text('Hi, $firstName', style: AppType.h1(c)),
                     ],
                   ),
                   SectionLabel(
