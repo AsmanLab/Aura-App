@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 import 'package:aura_app/core/theme/app_colors.dart';
 
@@ -28,7 +27,7 @@ class LinearLinkChip extends StatelessWidget {
           const SizedBox(width: 4),
           Text(
             id,
-            style: GoogleFonts.spaceGrotesk(
+            style: TextStyle(fontFamily: 'SpaceGrotesk', 
               fontSize: 11.5,
               fontWeight: FontWeight.w700,
               color: c.textDim,

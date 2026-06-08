@@ -42,21 +42,32 @@ class ProfilePage extends StatelessWidget {
 }
 
 /// The signed-in user's profile (Firebase) + nav rows + received-aura history.
-/// Realtime: streams the user doc + aura history.
-class _MyProfileView extends StatelessWidget {
+/// Realtime: streams the user doc + aura history (cached so rebuilds don't
+/// re-subscribe).
+class _MyProfileView extends StatefulWidget {
   const _MyProfileView();
+
+  @override
+  State<_MyProfileView> createState() => _MyProfileViewState();
+}
+
+class _MyProfileViewState extends State<_MyProfileView> {
+  late final String? _uid = sl<AuthRepository>().currentUser?.id;
+  late final Stream<UserModel?>? _userStream =
+      _uid == null ? null : sl<ProfileRepository>().watchUser(_uid);
+  late final Stream<List<AuraTransaction>>? _histStream =
+      _uid == null ? null : sl<ProfileRepository>().watchHistory(_uid);
 
   @override
   Widget build(BuildContext context) {
     final c = Theme.of(context).extension<AppColors>()!;
-    final uid = sl<AuthRepository>().currentUser?.id;
-    if (uid == null) {
+    if (_uid == null) {
       return Center(
         child: Text('Could not load profile.', style: AppType.body(c)),
       );
     }
     return StreamBuilder<UserModel?>(
-      stream: sl<ProfileRepository>().watchUser(uid),
+      stream: _userStream,
       builder: (context, userSnap) {
         if (!userSnap.hasData &&
             userSnap.connectionState == ConnectionState.waiting) {
@@ -69,7 +80,7 @@ class _MyProfileView extends StatelessWidget {
           );
         }
         return StreamBuilder<List<AuraTransaction>>(
-          stream: sl<ProfileRepository>().watchHistory(uid),
+          stream: _histStream,
           builder: (context, histSnap) {
             final history = histSnap.data ?? const <AuraTransaction>[];
             return ListView(
@@ -85,7 +96,10 @@ class _MyProfileView extends StatelessWidget {
                 _StatsCards(user: user),
                 if (user.role == Role.intern) ...[
                   const SizedBox(height: AppSpacing.s4),
-                  HeartsStatus(count: user.hearts),
+                  HeartsStatus(
+                    count: user.hearts,
+                    onTap: () => context.push('/aura/hearts-history'),
+                  ),
                 ],
                 const SizedBox(height: AppSpacing.s5),
                 AppCard.flush(
@@ -121,22 +135,33 @@ class _MyProfileView extends StatelessWidget {
 }
 
 /// Another person's profile (Firebase) — realtime stats + aura history,
-/// award if the viewer is a mentor.
-class _UserProfileView extends StatelessWidget {
+/// award if the viewer is a mentor. Streams/future cached so rebuilds don't
+/// re-subscribe.
+class _UserProfileView extends StatefulWidget {
   final String id;
   const _UserProfileView({required this.id});
 
   @override
+  State<_UserProfileView> createState() => _UserProfileViewState();
+}
+
+class _UserProfileViewState extends State<_UserProfileView> {
+  late final Future<UserModel?> _meFuture = sl<AuthRepository>().getUser();
+  late final Stream<UserModel?> _userStream =
+      sl<ProfileRepository>().watchUser(widget.id);
+  late final Stream<List<AuraTransaction>> _histStream =
+      sl<ProfileRepository>().watchHistory(widget.id);
+
+  @override
   Widget build(BuildContext context) {
     final c = Theme.of(context).extension<AppColors>()!;
-    final profile = sl<ProfileRepository>();
     return FutureBuilder<UserModel?>(
       // Viewer (for award gating) — role rarely changes, one-shot is fine.
-      future: sl<AuthRepository>().getUser(),
+      future: _meFuture,
       builder: (context, meSnap) {
         final me = meSnap.data;
         return StreamBuilder<UserModel?>(
-          stream: profile.watchUser(id),
+          stream: _userStream,
           builder: (context, userSnap) {
             final loading =
                 !userSnap.hasData &&
@@ -144,7 +169,7 @@ class _UserProfileView extends StatelessWidget {
             final user = userSnap.data;
             final canAward = (me?.canAward ?? false) && me?.id != user?.id;
             return StreamBuilder<List<AuraTransaction>>(
-              stream: profile.watchHistory(id),
+              stream: _histStream,
               builder: (context, histSnap) {
                 final history = histSnap.data ?? const <AuraTransaction>[];
                 return CustomScrollView(
@@ -175,11 +200,40 @@ class _UserProfileView extends StatelessWidget {
                             _StatsCards(user: user),
                             if (user.role == Role.intern) ...[
                               const SizedBox(height: AppSpacing.s4),
-                              HeartsStatus(count: user.hearts),
+                              HeartsStatus(
+                                count: user.hearts,
+                                onTap: () => context.push(
+                                  '/aura/hearts-history?userId=${user.id}',
+                                ),
+                              ),
                             ],
                             if (canAward) ...[
                               const SizedBox(height: AppSpacing.s4),
-                              _AwardButton(recipientId: user.id),
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: _ActionButton(
+                                      label: 'Aura',
+                                      gradient: true,
+                                      onTap: () => context.push(
+                                        '/aura/award?internId=${user.id}',
+                                      ),
+                                    ),
+                                  ),
+                                  if (user.role == Role.intern) ...[
+                                    const SizedBox(width: AppSpacing.s3),
+                                    Expanded(
+                                      child: _ActionButton(
+                                        label: 'Hearts',
+                                        color: c.heart,
+                                        onTap: () => context.push(
+                                          '/aura/hearts?recipientId=${user.id}',
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ],
+                              ),
                             ],
                             _HistorySection(
                               history: history,
@@ -422,24 +476,36 @@ class _NavRow extends StatelessWidget {
   }
 }
 
-class _AwardButton extends StatelessWidget {
-  final String recipientId;
-  const _AwardButton({required this.recipientId});
+class _ActionButton extends StatelessWidget {
+  final String label;
+  final VoidCallback onTap;
+  final bool gradient;
+  final Color? color;
+
+  const _ActionButton({
+    required this.label,
+    required this.onTap,
+    this.gradient = false,
+    this.color,
+  });
 
   @override
   Widget build(BuildContext context) {
     final c = Theme.of(context).extension<AppColors>()!;
     return GestureDetector(
-      onTap: () => context.push('/aura/award?internId=$recipientId'),
+      onTap: onTap,
       child: Container(
         height: 52,
         alignment: Alignment.center,
         decoration: BoxDecoration(
-          gradient: LinearGradient(colors: [c.accent1, c.accent2]),
+          gradient: gradient
+              ? LinearGradient(colors: [c.accent1, c.accent2])
+              : null,
+          color: gradient ? null : color,
           borderRadius: BorderRadius.circular(AppSpacing.rSm),
         ),
         child: Text(
-          'Award Aura',
+          label,
           style: AppType.bodyStrong(c).copyWith(color: Colors.white),
         ),
       ),

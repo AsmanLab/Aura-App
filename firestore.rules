@@ -1,0 +1,86 @@
+rules_version = '2';
+
+// Aura security rules. Award/heart writes are mentor-only and bounded; users
+// can only edit their own non-privileged profile fields. Deploy with:
+//   firebase deploy --only firestore:rules
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isSignedIn() { return request.auth != null; }
+    function uid() { return request.auth.uid; }
+
+    function roleOf(id) {
+      return get(/databases/$(database)/documents/users/$(id)).data.role;
+    }
+    // "canAward" mirrors the app: anyone who isn't an intern.
+    function canAward(id) {
+      return roleOf(id) in ['mentor', 'fullTime', 'admin'];
+    }
+    function changed() {
+      return request.resource.data.diff(resource.data).affectedKeys();
+    }
+
+    match /users/{userId} {
+      allow read: if isSignedIn();
+
+      // Self-registration only; can't self-assign a privileged role or stats.
+      allow create: if isSignedIn()
+        && userId == uid()
+        && request.resource.data.role == 'intern'
+        && request.resource.data.currentWeekAura == 0
+        && request.resource.data.totalAura == 0;
+
+      allow update: if isSignedIn() && (
+        // Owner edits non-privileged profile fields (no role/aura/hearts).
+        (userId == uid() && changed().hasOnly(
+          ['displayName', 'photoURL', 'position', 'fcmTokens',
+           'metadata', 'lastRouletteDate'])) ||
+
+        // A mentor changes someone's hearts by ±1, kept within 0..8.
+        (canAward(uid())
+          && changed().hasOnly(['hearts'])
+          && request.resource.data.hearts is int
+          && request.resource.data.hearts >= 0
+          && request.resource.data.hearts <= 8
+          && request.resource.data.hearts - resource.data.hearts >= -1
+          && request.resource.data.hearts - resource.data.hearts <= 1) ||
+
+        // A mentor awards aura (both counters move together via increment).
+        (canAward(uid())
+          && changed().hasOnly(['currentWeekAura', 'totalAura']))
+      );
+
+      allow delete: if false;
+    }
+
+    // Heart changes (append-only). Mentor-only, ±1, comment required to remove.
+    match /hearts_transactions/{id} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn()
+        && request.resource.data.fromUserId == uid()
+        && canAward(uid())
+        && request.resource.data.toUserId != uid()
+        && request.resource.data.delta in [1, -1]
+        && (request.resource.data.delta == 1
+            || request.resource.data.comment.size() > 0);
+      allow update, delete: if false;
+    }
+
+    // Aura awards (append-only). Mentor-only, points in -10..10.
+    match /aura_transactions/{id} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn()
+        && request.resource.data.fromUserId == uid()
+        && canAward(uid())
+        && request.resource.data.toUserId != uid()
+        && request.resource.data.points is int
+        && request.resource.data.points >= -10
+        && request.resource.data.points <= 10;
+      allow update, delete: if false;
+    }
+
+    match /roulette_history/{userId}/spins/{spin} {
+      allow read, create: if isSignedIn() && userId == uid();
+    }
+  }
+}

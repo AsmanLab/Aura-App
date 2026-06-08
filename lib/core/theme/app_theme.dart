@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 import 'app_colors.dart';
 
@@ -14,11 +13,14 @@ class AppTheme {
       useMaterial3: true,
       brightness: b,
       scaffoldBackgroundColor: c.bg,
+      fontFamily: 'Manrope',
       splashFactory: NoSplash.splashFactory, // no Material ripple
       highlightColor: Colors.transparent,
-      textTheme: GoogleFonts.manropeTextTheme(
-        ThemeData(brightness: b).textTheme,
-      ).apply(bodyColor: c.text, displayColor: c.text),
+      textTheme: ThemeData(brightness: b).textTheme.apply(
+            fontFamily: 'Manrope',
+            bodyColor: c.text,
+            displayColor: c.text,
+          ),
       colorScheme: ColorScheme.fromSeed(
         seedColor: c.accentSolid,
         brightness: b,

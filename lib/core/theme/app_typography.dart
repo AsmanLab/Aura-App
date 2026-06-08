@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 import 'app_colors.dart';
 
@@ -13,7 +12,7 @@ class AppType {
     FontWeight w,
     Color c, {
     double ls = -0.01,
-  }) => GoogleFonts.manrope(
+  }) => TextStyle(fontFamily: 'Manrope', 
     fontSize: size,
     fontWeight: w,
     color: c,
@@ -21,7 +20,7 @@ class AppType {
   );
 
   static TextStyle _g(double size, FontWeight w, Color c) =>
-      GoogleFonts.spaceGrotesk(
+      TextStyle(fontFamily: 'SpaceGrotesk', 
         fontSize: size,
         fontWeight: w,
         color: c,

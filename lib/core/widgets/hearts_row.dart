@@ -33,18 +33,25 @@ class HeartsRow extends StatefulWidget {
 class _HeartsRowState extends State<HeartsRow>
     with SingleTickerProviderStateMixin {
   late int _count = widget.count;
-  late final AnimationController _ctrl = AnimationController(
-    vsync: this,
-    duration: AppDurations.heart,
-  );
-  late final Animation<double> _punch = TweenSequence<double>([
-    TweenSequenceItem(tween: Tween(begin: 1.0, end: 1.35), weight: 30),
-    TweenSequenceItem(tween: Tween(begin: 1.35, end: 0.9), weight: 30),
-    TweenSequenceItem(tween: Tween(begin: 0.9, end: 1.0), weight: 40),
-  ]).animate(CurvedAnimation(parent: _ctrl, curve: Curves.easeOut));
+  // Initialized eagerly in initState — a lazy `late final` here would create
+  // the Ticker on first access in dispose() (non-interactive rows never touch
+  // it during their life), which throws during teardown.
+  late final AnimationController _ctrl;
+  late final Animation<double> _punch;
 
   int? _losingIndex;
   OverlayEntry? _pulse;
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = AnimationController(vsync: this, duration: AppDurations.heart);
+    _punch = TweenSequence<double>([
+      TweenSequenceItem(tween: Tween(begin: 1.0, end: 1.35), weight: 30),
+      TweenSequenceItem(tween: Tween(begin: 1.35, end: 0.9), weight: 30),
+      TweenSequenceItem(tween: Tween(begin: 0.9, end: 1.0), weight: 40),
+    ]).animate(CurvedAnimation(parent: _ctrl, curve: Curves.easeOut));
+  }
 
   @override
   void didUpdateWidget(covariant HeartsRow old) {

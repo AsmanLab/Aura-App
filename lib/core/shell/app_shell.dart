@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 
 import 'package:aura_app/core/theme/app_colors.dart';
 import 'package:aura_app/core/theme/app_gradients.dart';
+import 'package:aura_app/core/theme/app_spacing.dart';
 import 'package:aura_app/core/theme/app_typography.dart';
 import 'package:aura_app/features/auth/presentation/auth_providers.dart';
 
@@ -33,7 +34,7 @@ class AppShell extends ConsumerWidget {
       extendBody: true,
       body: shell,
       floatingActionButton: (shell.currentIndex == 0 && canAward)
-          ? _AwardFab(onTap: () => context.push('/aura/award'))
+          ? const _ExpandableFab()
           : null,
       bottomNavigationBar: _BottomBar(
         tabs: _tabs,
@@ -117,24 +118,135 @@ class _TabButton extends StatelessWidget {
   }
 }
 
-class _AwardFab extends StatelessWidget {
+/// Expandable FAB: tap to reveal Aura + Hearts actions (mentor mode).
+class _ExpandableFab extends StatefulWidget {
+  const _ExpandableFab();
+
+  @override
+  State<_ExpandableFab> createState() => _ExpandableFabState();
+}
+
+class _ExpandableFabState extends State<_ExpandableFab> {
+  bool _open = false;
+
+  void _toggle() => setState(() => _open = !_open);
+
+  void _go(String route) {
+    setState(() => _open = false);
+    context.push(route);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final c = Theme.of(context).extension<AppColors>()!;
+    // Right angle: Hearts above the FAB, Aura to its left.
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.end,
+      children: [
+        // Hearts — above.
+        AnimatedSize(
+          duration: AppDurations.fast,
+          curve: Curves.easeOutCubic,
+          child: _open
+              ? Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: _MiniAction(
+                    icon: Icons.favorite,
+                    label: 'Hearts',
+                    color: c.heart,
+                    onTap: () => _go('/aura/hearts'),
+                  ),
+                )
+              : const SizedBox.shrink(),
+        ),
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            // Aura — to the left.
+            AnimatedSize(
+              duration: AppDurations.fast,
+              curve: Curves.easeOutCubic,
+              child: _open
+                  ? Padding(
+                      padding: const EdgeInsets.only(right: 12),
+                      child: _MiniAction(
+                        icon: Icons.auto_awesome,
+                        label: 'Aura',
+                        color: c.accentSolid,
+                        onTap: () => _go('/aura/award'),
+                      ),
+                    )
+                  : const SizedBox.shrink(),
+            ),
+            GestureDetector(
+              onTap: _toggle,
+              child: Container(
+                width: 60,
+                height: 60,
+                decoration: BoxDecoration(
+                  gradient: AppGradients.aura(c),
+                  borderRadius: BorderRadius.circular(20),
+                  boxShadow: AppGradients.glow(c),
+                ),
+                child: AnimatedRotation(
+                  turns: _open ? 0.125 : 0,
+                  duration: AppDurations.fast,
+                  child: const Icon(Icons.add, color: Colors.white, size: 30),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+class _MiniAction extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final Color color;
   final VoidCallback onTap;
-  const _AwardFab({required this.onTap});
+  const _MiniAction({
+    required this.icon,
+    required this.label,
+    required this.color,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
     final c = Theme.of(context).extension<AppColors>()!;
     return GestureDetector(
       onTap: onTap,
-      child: Container(
-        width: 60,
-        height: 60,
-        decoration: BoxDecoration(
-          gradient: AppGradients.aura(c),
-          borderRadius: BorderRadius.circular(20),
-          boxShadow: AppGradients.glow(c),
-        ),
-        child: const Icon(Icons.auto_awesome, color: Colors.white, size: 28),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            decoration: BoxDecoration(
+              color: c.surface,
+              borderRadius: BorderRadius.circular(AppSpacing.rChip),
+              border: Border.all(color: c.border),
+              boxShadow: AppShadows.card(c),
+            ),
+            child: Text(label, style: AppType.bodyStrong(c)),
+          ),
+          const SizedBox(width: AppSpacing.s2),
+          Container(
+            width: 46,
+            height: 46,
+            decoration: BoxDecoration(
+              color: c.surface,
+              shape: BoxShape.circle,
+              border: Border.all(color: c.border),
+              boxShadow: AppShadows.card(c),
+            ),
+            child: Icon(icon, color: color, size: 22),
+          ),
+        ],
       ),
     );
   }

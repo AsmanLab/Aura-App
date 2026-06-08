@@ -1,12 +1,14 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 import 'package:aura_app/core/models/aura_transaction.dart';
+import 'package:aura_app/core/models/heart_transaction.dart';
 import 'package:aura_app/core/models/user_model.dart';
 
 /// Reads a user's profile + received-aura history.
 abstract class ProfileRemoteDataSource {
   Future<UserModel?> getUser(String id);
   Future<List<AuraTransaction>> getHistory(String userId);
+  Future<List<HeartTransaction>> getHeartHistory(String userId);
 
   /// Realtime: emits on every change to the user's received-aura history.
   Stream<List<AuraTransaction>> watchHistory(String userId);
@@ -35,6 +37,20 @@ class ProfileRemoteDataSourceImpl implements ProfileRemoteDataSource {
         .get();
     final txns = snap.docs
         .map((d) => AuraTransaction.fromMap(d.data(), d.id))
+        .toList();
+    txns.sort((a, b) => b.timestamp.compareTo(a.timestamp));
+    return txns;
+  }
+
+  @override
+  Future<List<HeartTransaction>> getHeartHistory(String userId) async {
+    final snap = await _db
+        .collection('hearts_transactions')
+        .where('toUserId', isEqualTo: userId)
+        .limit(100)
+        .get();
+    final txns = snap.docs
+        .map((d) => HeartTransaction.fromMap(d.data(), d.id))
         .toList();
     txns.sort((a, b) => b.timestamp.compareTo(a.timestamp));
     return txns;

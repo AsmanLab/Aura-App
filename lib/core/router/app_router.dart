@@ -7,6 +7,9 @@ import '../../features/award/presentation/pages/award_page.dart';
 import '../../features/duty/presentation/bloc/duty_cubit.dart';
 import '../../features/duty/presentation/pages/duty_page.dart';
 import '../../features/history/presentation/pages/history_page.dart';
+import '../../features/hearts/presentation/bloc/hearts_cubit.dart';
+import '../../features/hearts/presentation/pages/hearts_history_page.dart';
+import '../../features/hearts/presentation/pages/hearts_page.dart';
 import '../../features/home/presentation/pages/home_page.dart';
 import '../../features/knowledge/presentation/pages/article_page.dart';
 import '../../features/knowledge/presentation/pages/knowledge_page.dart';
@@ -98,6 +101,26 @@ List<RouteBase> auraRoutes() => [
         ),
         child: const AwardPage(),
       ),
+    ),
+  ),
+  GoRoute(
+    path: '/aura/hearts',
+    pageBuilder: (context, state) => _slideUp(
+      state,
+      BlocProvider(
+        create: (_) => HeartsCubit(
+          sl(),
+          presetRecipientId: state.uri.queryParameters['recipientId'],
+        ),
+        child: const HeartsPage(),
+      ),
+    ),
+  ),
+  GoRoute(
+    path: '/aura/hearts-history',
+    pageBuilder: (context, state) => _slideRight(
+      state,
+      HeartsHistoryPage(userId: state.uri.queryParameters['userId']),
     ),
   ),
   GoRoute(

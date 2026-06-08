@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 import '../models/enums.dart';
 
@@ -32,7 +31,7 @@ class RoleBadge extends StatelessWidget {
           const SizedBox(width: 6),
           Text(
             ru ? role.labelRu : role.label,
-            style: GoogleFonts.manrope(
+            style: TextStyle(fontFamily: 'Manrope', 
               fontSize: 11.5,
               fontWeight: FontWeight.w700,
               color: role.color,

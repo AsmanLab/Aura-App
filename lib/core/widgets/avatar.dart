@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 /// Deterministic gradient palette for initials avatars. See commands/04 §4.3.
 const _avatarGrads = <List<Color>>[
@@ -60,7 +59,7 @@ class Avatar extends StatelessWidget {
     final grad = gradFor(id);
     final initials = Text(
       initialsOf(name),
-      style: GoogleFonts.manrope(
+      style: TextStyle(fontFamily: 'Manrope', 
         fontSize: 0.38 * size,
         fontWeight: FontWeight.w700,
         color: Colors.white,

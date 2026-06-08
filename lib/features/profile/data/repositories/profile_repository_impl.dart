@@ -1,4 +1,5 @@
 import 'package:aura_app/core/models/aura_transaction.dart';
+import 'package:aura_app/core/models/heart_transaction.dart';
 import 'package:aura_app/core/models/user_model.dart';
 import '../../domain/repositories/profile_repository.dart';
 import '../datasources/profile_remote_data_source.dart';
@@ -13,6 +14,10 @@ class ProfileRepositoryImpl implements ProfileRepository {
   @override
   Future<List<AuraTransaction>> getHistory(String userId) =>
       _remote.getHistory(userId);
+
+  @override
+  Future<List<HeartTransaction>> getHeartHistory(String userId) =>
+      _remote.getHeartHistory(userId);
 
   @override
   Stream<List<AuraTransaction>> watchHistory(String userId) =>

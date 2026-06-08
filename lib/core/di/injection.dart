@@ -9,6 +9,9 @@ import 'package:aura_app/core/services/push_service.dart';
 import '../../features/award/data/datasources/award_remote_data_source.dart';
 import '../../features/award/data/repositories/award_repository_impl.dart';
 import '../../features/award/domain/repositories/award_repository.dart';
+import '../../features/hearts/data/datasources/hearts_remote_data_source.dart';
+import '../../features/hearts/data/repositories/hearts_repository_impl.dart';
+import '../../features/hearts/domain/repositories/hearts_repository.dart';
 import '../../features/leaderboard/data/datasources/leaderboard_remote_data_source.dart';
 import '../../features/leaderboard/data/repositories/leaderboard_repository_impl.dart';
 import '../../features/leaderboard/domain/repositories/leaderboard_repository.dart';
@@ -71,6 +74,14 @@ Future<void> setupDi() async {
   );
   sl.registerLazySingleton<AwardRepository>(
     () => AwardRepositoryImpl(sl(), sl()),
+  );
+
+  // Hearts (Firebase: clamp 0..8 + write hearts_transactions).
+  sl.registerLazySingleton<HeartsRemoteDataSource>(
+    () => HeartsRemoteDataSourceImpl(FirebaseFirestore.instance),
+  );
+  sl.registerLazySingleton<HeartsRepository>(
+    () => HeartsRepositoryImpl(sl(), sl()),
   );
 
   // Profile (Firebase: user doc + received-aura history).

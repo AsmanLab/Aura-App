@@ -1,7 +1,6 @@
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 
 import 'package:aura_app/core/theme/app_colors.dart';
@@ -27,7 +26,7 @@ class AuraValue extends StatelessWidget {
   Widget build(BuildContext context) {
     final c = Theme.of(context).extension<AppColors>()!;
     final text = NumberFormat.decimalPattern().format(value);
-    final numStyle = GoogleFonts.spaceGrotesk(
+    final numStyle = TextStyle(fontFamily: 'SpaceGrotesk', 
       fontSize: size,
       fontWeight: FontWeight.w600,
       height: 0.95,
@@ -67,7 +66,7 @@ class AuraValue extends StatelessWidget {
           const SizedBox(width: 8),
           Text(
             'AURA',
-            style: GoogleFonts.manrope(
+            style: TextStyle(fontFamily: 'Manrope', 
               fontSize: size * 0.3,
               fontWeight: FontWeight.w700,
               color: c.textDim,
@@ -91,7 +90,7 @@ class AuraPoints extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = Theme.of(context).extension<AppColors>()!;
-    final style = GoogleFonts.spaceGrotesk(
+    final style = TextStyle(fontFamily: 'SpaceGrotesk', 
       fontSize: size,
       fontWeight: FontWeight.w700,
       letterSpacing: -0.02 * size,
