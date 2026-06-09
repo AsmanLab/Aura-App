@@ -1,41 +1,33 @@
-import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-import 'package:aura_app/core/models/user_model.dart';
 import 'package:aura_app/core/models/enums.dart';
+import '../../domain/entities/leaderboard_entry.dart';
 import '../../domain/repositories/leaderboard_repository.dart';
 
-class LeaderboardState extends Equatable {
+class LeaderboardState {
   final LbFilter filter;
-  final List<UserModel> users;
+  final List<LeaderboardEntry> entries;
   final String? meId;
   final bool loading;
 
   const LeaderboardState({
     this.filter = LbFilter.allTime,
-    this.users = const [],
+    this.entries = const [],
     this.meId,
     this.loading = true,
   });
 
-  /// Score shown for the active period.
-  int scoreOf(UserModel u) =>
-      filter == LbFilter.week ? u.currentWeekAura : u.totalAura;
-
   LeaderboardState copyWith({
     LbFilter? filter,
-    List<UserModel>? users,
+    List<LeaderboardEntry>? entries,
     String? meId,
     bool? loading,
   }) => LeaderboardState(
     filter: filter ?? this.filter,
-    users: users ?? this.users,
+    entries: entries ?? this.entries,
     meId: meId ?? this.meId,
     loading: loading ?? this.loading,
   );
-
-  @override
-  List<Object?> get props => [filter, users, meId, loading];
 }
 
 class LeaderboardCubit extends Cubit<LeaderboardState> {
@@ -52,10 +44,10 @@ class LeaderboardCubit extends Cubit<LeaderboardState> {
 
   Future<void> _load(LbFilter filter) async {
     emit(state.copyWith(filter: filter, loading: true));
-    final users = await _repo.getLeaderboard(filter);
+    final entries = await _repo.getLeaderboard(filter);
     if (isClosed) return;
     emit(state.copyWith(
-      users: users,
+      entries: entries,
       meId: _repo.currentUserId,
       loading: false,
     ));

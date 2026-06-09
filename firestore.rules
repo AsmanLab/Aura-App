@@ -45,9 +45,8 @@ service cloud.firestore {
           && request.resource.data.hearts - resource.data.hearts >= -1
           && request.resource.data.hearts - resource.data.hearts <= 1) ||
 
-        // A mentor awards aura (both counters move together via increment).
-        (canAward(uid())
-          && changed().hasOnly(['currentWeekAura', 'totalAura']))
+        // Any signed-in user awards aura (both counters move together).
+        (changed().hasOnly(['currentWeekAura', 'totalAura']))
       );
 
       allow delete: if false;
@@ -66,12 +65,11 @@ service cloud.firestore {
       allow update, delete: if false;
     }
 
-    // Aura awards (append-only). Mentor-only, points in -10..10.
+    // Aura awards (append-only). Any signed-in user, points in -10..10.
     match /aura_transactions/{id} {
       allow read: if isSignedIn();
       allow create: if isSignedIn()
         && request.resource.data.fromUserId == uid()
-        && canAward(uid())
         && request.resource.data.toUserId != uid()
         && request.resource.data.points is int
         && request.resource.data.points >= -10

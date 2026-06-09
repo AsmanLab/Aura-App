@@ -105,7 +105,8 @@ class AwardCubit extends Cubit<AwardState> {
         presetId != null && recipients.any((u) => u.id == presetId);
     emit(state.copyWith(
       loading: false,
-      canAward: me?.canAward ?? false,
+      // Anyone signed in can give aura (hearts stay mentor-only).
+      canAward: me != null,
       recipients: recipients,
       recipientId: hasPreset ? presetId : null,
       step: hasPreset ? 1 : 0,

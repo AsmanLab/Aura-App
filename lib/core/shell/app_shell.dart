@@ -33,8 +33,9 @@ class AppShell extends ConsumerWidget {
       backgroundColor: c.bg,
       extendBody: true,
       body: shell,
-      floatingActionButton: (shell.currentIndex == 0 && canAward)
-          ? const _ExpandableFab()
+      // Everyone can give aura; only mentors (canAward) also get the Hearts action.
+      floatingActionButton: shell.currentIndex == 0
+          ? _ExpandableFab(canHearts: canAward)
           : null,
       bottomNavigationBar: _BottomBar(
         tabs: _tabs,
@@ -118,9 +119,11 @@ class _TabButton extends StatelessWidget {
   }
 }
 
-/// Expandable FAB: tap to reveal Aura + Hearts actions (mentor mode).
+/// FAB for giving aura. Mentors ([canHearts]) get an expandable Aura + Hearts;
+/// everyone else gets a single Aura button.
 class _ExpandableFab extends StatefulWidget {
-  const _ExpandableFab();
+  final bool canHearts;
+  const _ExpandableFab({required this.canHearts});
 
   @override
   State<_ExpandableFab> createState() => _ExpandableFabState();
@@ -139,6 +142,24 @@ class _ExpandableFabState extends State<_ExpandableFab> {
   @override
   Widget build(BuildContext context) {
     final c = Theme.of(context).extension<AppColors>()!;
+
+    // Non-mentors: a plain Aura button (no hearts, no expand).
+    if (!widget.canHearts) {
+      return GestureDetector(
+        onTap: () => context.push('/aura/award'),
+        child: Container(
+          width: 60,
+          height: 60,
+          decoration: BoxDecoration(
+            gradient: AppGradients.aura(c),
+            borderRadius: BorderRadius.circular(20),
+            boxShadow: AppGradients.glow(c),
+          ),
+          child: const Icon(Icons.auto_awesome, color: Colors.white, size: 28),
+        ),
+      );
+    }
+
     // Right angle: Hearts above the FAB, Aura to its left.
     return Column(
       mainAxisSize: MainAxisSize.min,

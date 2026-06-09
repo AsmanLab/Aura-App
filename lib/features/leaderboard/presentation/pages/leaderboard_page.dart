@@ -12,6 +12,7 @@ import 'package:aura_app/core/widgets/app_card.dart';
 import 'package:aura_app/core/widgets/aura_value.dart';
 import 'package:aura_app/core/widgets/avatar.dart';
 import 'package:aura_app/core/widgets/segmented_control.dart';
+import '../../domain/entities/leaderboard_entry.dart';
 import '../bloc/leaderboard_cubit.dart';
 
 class LeaderboardPage extends StatelessWidget {
@@ -26,13 +27,14 @@ class LeaderboardPage extends StatelessWidget {
         bottom: false,
         child: BlocBuilder<LeaderboardCubit, LeaderboardState>(
           builder: (context, state) {
-            if (state.loading && state.users.isEmpty) {
+            if (state.loading && state.entries.isEmpty) {
               return const PageSkeleton();
             }
-            final users = state.users;
-            final meIndex = users.indexWhere((u) => u.id == state.meId);
-            final top3 = users.take(3).toList();
-            final rest = users.skip(3).toList();
+            final entries = state.entries;
+            final meIndex =
+                entries.indexWhere((e) => e.user.id == state.meId);
+            final top3 = entries.take(3).toList();
+            final rest = entries.skip(3).toList();
 
             return Stack(
               children: [
@@ -56,7 +58,7 @@ class LeaderboardPage extends StatelessWidget {
                       ],
                     ),
                     const SizedBox(height: AppSpacing.s6),
-                    if (users.isEmpty)
+                    if (entries.isEmpty)
                       Padding(
                         padding: const EdgeInsets.only(top: AppSpacing.s8),
                         child: Center(
@@ -64,8 +66,7 @@ class LeaderboardPage extends StatelessWidget {
                               style: AppType.bodyDim(c)),
                         ),
                       ),
-                    if (top3.length == 3)
-                      _Podium(top3: top3, state: state),
+                    if (top3.length == 3) _Podium(top3: top3),
                     const SizedBox(height: AppSpacing.s5),
                     AppCard.flush(
                       child: Column(
@@ -73,8 +74,8 @@ class LeaderboardPage extends StatelessWidget {
                           for (var i = 0; i < rest.length; i++)
                             _RestRow(
                               rank: i + 4,
-                              user: rest[i],
-                              score: state.scoreOf(rest[i]),
+                              user: rest[i].user,
+                              score: rest[i].score,
                               divider: i != rest.length - 1,
                             ),
                         ],
@@ -89,8 +90,8 @@ class LeaderboardPage extends StatelessWidget {
                     bottom: 100,
                     child: _YourRank(
                       rank: meIndex + 1,
-                      user: users[meIndex],
-                      score: state.scoreOf(users[meIndex]),
+                      user: entries[meIndex].user,
+                      score: entries[meIndex].score,
                     ),
                   ),
               ],
@@ -107,19 +108,18 @@ void _openProfile(BuildContext context, UserModel user) {
 }
 
 class _Podium extends StatelessWidget {
-  final List<UserModel> top3;
-  final LeaderboardState state;
-  const _Podium({required this.top3, required this.state});
+  final List<LeaderboardEntry> top3;
+  const _Podium({required this.top3});
 
   @override
   Widget build(BuildContext context) {
     // Visual order: 2nd, 1st, 3rd.
     Widget plinth(int i, int rank, double h) => Expanded(
           child: _Plinth(
-            user: top3[i],
+            user: top3[i].user,
             rank: rank,
             height: h,
-            score: state.scoreOf(top3[i]),
+            score: top3[i].score,
           ),
         );
     return Row(

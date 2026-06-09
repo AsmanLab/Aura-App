@@ -34,7 +34,7 @@ class AwardRepositoryImpl implements AwardRepository {
   }) async {
     final me = await _auth.getUser();
     if (me == null) throw Exception('Not signed in');
-    if (!me.canAward) throw Exception('Only mentors can award aura');
+    // Anyone signed in can give aura; only the self-award is blocked.
     if (me.id == toUserId) throw Exception('Cannot award yourself');
 
     final txn = AuraTransaction(
