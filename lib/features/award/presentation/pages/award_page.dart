@@ -119,17 +119,14 @@ class AwardPage extends StatelessWidget {
                           child: Text('Back', style: AppType.bodyStrong(c)),
                         ),
                       const Spacer(),
-                      _PrimaryButton(
-                        label: state.step == 3
-                            ? (state.submitting
-                                ? 'Awarding…'
-                                : 'Award ${state.points >= 0 ? '+' : ''}'
-                                    '${state.points}')
-                            : 'Continue',
-                        enabled: state.canContinue && !state.submitting,
-                        onTap: () =>
-                            state.step == 3 ? cubit.submit() : cubit.next(),
-                      ),
+                      if (state.step == 3)
+                        _AwardButton(state: state, cubit: cubit)
+                      else
+                        _PrimaryButton(
+                          label: 'Continue',
+                          enabled: state.canContinue && !state.submitting,
+                          onTap: cubit.next,
+                        ),
                     ],
                   ),
                 ),
@@ -263,7 +260,7 @@ class _StepBody extends StatelessWidget {
               children: [
                 _StepperButton(
                   icon: Icons.chevron_left,
-                  enabled: state.points > AwardCubit.minPoints,
+                  enabled: state.points > state.minPoints,
                   onTap: () => cubit.setPoints(state.points - 1),
                 ),
                 SizedBox(
@@ -272,7 +269,7 @@ class _StepBody extends StatelessWidget {
                 ),
                 _StepperButton(
                   icon: Icons.chevron_right,
-                  enabled: state.points < AwardCubit.maxPoints,
+                  enabled: state.points < state.maxPoints,
                   onTap: () => cubit.setPoints(state.points + 1),
                 ),
               ],
@@ -285,7 +282,9 @@ class _StepBody extends StatelessWidget {
               spacing: AppSpacing.s2,
               runSpacing: AppSpacing.s2,
               children: [
-                for (final q in [-10, -5, 5, 10])
+                for (final q in (state.isMentor
+                    ? const [-10, -5, 5, 10]
+                    : const [-1, 1]))
                   ActionChip(
                     label: Text(q > 0 ? '+$q' : '$q'),
                     onPressed: () => cubit.setPoints(q),
@@ -400,6 +399,81 @@ class _MentorsOnlyView extends StatelessWidget {
           const Spacer(),
         ],
       ),
+    );
+  }
+}
+
+/// Award button with a live cooldown countdown for rate-limited (non-mentor)
+/// givers. Ticks every second while the cooldown is active.
+class _AwardButton extends StatefulWidget {
+  final AwardState state;
+  final AwardCubit cubit;
+  const _AwardButton({required this.state, required this.cubit});
+
+  @override
+  State<_AwardButton> createState() => _AwardButtonState();
+}
+
+class _AwardButtonState extends State<_AwardButton> {
+  Timer? _timer;
+
+  @override
+  void initState() {
+    super.initState();
+    _sync();
+  }
+
+  @override
+  void didUpdateWidget(_AwardButton old) {
+    super.didUpdateWidget(old);
+    _sync();
+  }
+
+  void _sync() {
+    final until = widget.state.cooldownUntil;
+    final active = until != null && DateTime.now().isBefore(until);
+    if (active && _timer == null) {
+      _timer = Timer.periodic(const Duration(seconds: 1), (_) {
+        if (!mounted) return;
+        final u = widget.state.cooldownUntil;
+        if (u == null || !DateTime.now().isBefore(u)) {
+          _timer?.cancel();
+          _timer = null;
+        }
+        setState(() {});
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  static String _fmt(int secs) {
+    if (secs < 60) return '${secs}s';
+    final m = secs ~/ 60;
+    final s = secs % 60;
+    return s == 0 ? '${m}m' : '${m}m ${s}s';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final s = widget.state;
+    final until = s.cooldownUntil;
+    final remaining =
+        until == null ? 0 : until.difference(DateTime.now()).inSeconds;
+    final onCooldown = remaining > 0;
+    final label = s.submitting
+        ? 'Awarding…'
+        : onCooldown
+            ? 'Wait ${_fmt(remaining)}'
+            : 'Award ${s.points >= 0 ? '+' : ''}${s.points}';
+    return _PrimaryButton(
+      label: label,
+      enabled: s.canContinue && !s.submitting && !onCooldown,
+      onTap: widget.cubit.submit,
     );
   }
 }

@@ -18,6 +18,10 @@ class UserModel {
   final int hearts;
 
   final DateTime? lastRouletteDate;
+
+  /// Last time this user gave aura. Used to rate-limit non-mentors (cooldown).
+  final DateTime? lastAwardAt;
+
   final DateTime createdAt;
 
   /// Schema version for forward migrations. Bump when the doc shape changes.
@@ -39,6 +43,7 @@ class UserModel {
     this.position = '',
     this.hearts = maxHearts,
     this.lastRouletteDate,
+    this.lastAwardAt,
     required this.createdAt,
     this.schemaVersion = 1,
     this.metadata = const {},
@@ -61,6 +66,7 @@ class UserModel {
       position: map['position'] ?? '',
       hearts: map['hearts'] ?? maxHearts,
       lastRouletteDate: (map['lastRouletteDate'] as Timestamp?)?.toDate(),
+      lastAwardAt: (map['lastAwardAt'] as Timestamp?)?.toDate(),
       createdAt:
           (map['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
       schemaVersion: map['schemaVersion'] ?? 1,
@@ -80,6 +86,8 @@ class UserModel {
       'hearts': hearts,
       'lastRouletteDate':
           lastRouletteDate != null ? Timestamp.fromDate(lastRouletteDate!) : null,
+      'lastAwardAt':
+          lastAwardAt != null ? Timestamp.fromDate(lastAwardAt!) : null,
       'createdAt': Timestamp.fromDate(createdAt),
       'schemaVersion': schemaVersion,
       'metadata': metadata,
@@ -96,6 +104,7 @@ class UserModel {
     String? position,
     int? hearts,
     DateTime? lastRouletteDate,
+    DateTime? lastAwardAt,
     int? schemaVersion,
     Map<String, dynamic>? metadata,
   }) {
@@ -110,6 +119,7 @@ class UserModel {
       position: position ?? this.position,
       hearts: hearts ?? this.hearts,
       lastRouletteDate: lastRouletteDate ?? this.lastRouletteDate,
+      lastAwardAt: lastAwardAt ?? this.lastAwardAt,
       createdAt: createdAt,
       schemaVersion: schemaVersion ?? this.schemaVersion,
       metadata: metadata ?? this.metadata,

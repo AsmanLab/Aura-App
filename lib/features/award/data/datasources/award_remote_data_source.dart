@@ -34,6 +34,11 @@ class AwardRemoteDataSourceImpl implements AwardRemoteDataSource {
       'currentWeekAura': FieldValue.increment(txn.points),
       'totalAura': FieldValue.increment(txn.points),
     });
+    // Stamp the giver's cooldown clock (rate-limits non-mentors; firestore.rules
+    // require this == request.time so it can't be backdated).
+    batch.update(_db.collection('users').doc(txn.fromUserId), {
+      'lastAwardAt': FieldValue.serverTimestamp(),
+    });
     await batch.commit();
   }
 }

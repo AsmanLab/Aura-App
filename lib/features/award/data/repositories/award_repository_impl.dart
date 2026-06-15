@@ -37,13 +37,17 @@ class AwardRepositoryImpl implements AwardRepository {
     // Anyone signed in can give aura; only the self-award is blocked.
     if (me.id == toUserId) throw Exception('Cannot award yourself');
 
+    // Non-mentors are capped at ±1 (also enforced in firestore.rules).
+    final limit = me.canAward ? 10 : 1;
+    final clamped = points.clamp(-limit, limit);
+
     final txn = AuraTransaction(
       id: _uuid.v4(),
       fromUserId: me.id,
       fromName: me.displayName,
       fromPhotoURL: me.photoURL,
       toUserId: toUserId,
-      points: points,
+      points: clamped,
       comment: comment.trim(),
       category: category.name,
       timestamp: DateTime.now(),

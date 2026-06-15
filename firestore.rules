@@ -1,6 +1,7 @@
 rules_version = '2';
 
-// Aura security rules. Award/heart writes are mentor-only and bounded; users
+// Aura security rules. Heart writes are mentor-only. Aura: mentors give ±10
+// freely; non-mentors are capped at ±1 with a cooldown between awards. Users
 // can only edit their own non-privileged profile fields. Deploy with:
 //   firebase deploy --only firestore:rules
 service cloud.firestore {
@@ -19,6 +20,14 @@ service cloud.firestore {
     function changed() {
       return request.resource.data.diff(resource.data).affectedKeys();
     }
+    // Giver's last-award time (epoch when unset) — anchors the non-mentor
+    // cooldown. Keep the window in sync with `awardCooldown` in award_cubit.dart.
+    function lastAwardOf(id) {
+      let d = get(/databases/$(database)/documents/users/$(id)).data;
+      return ('lastAwardAt' in d && d.lastAwardAt != null)
+        ? d.lastAwardAt : timestamp.value(0);
+    }
+    function awardCooldown() { return duration.value(5, 'm'); }
 
     match /users/{userId} {
       allow read: if isSignedIn();
@@ -47,7 +56,13 @@ service cloud.firestore {
           && request.resource.data.hearts - resource.data.hearts <= 1) ||
 
         // Any signed-in user awards aura (both counters move together).
-        (changed().hasOnly(['currentWeekAura', 'totalAura']))
+        (changed().hasOnly(['currentWeekAura', 'totalAura'])) ||
+
+        // Giver stamps their own cooldown clock on award — server time only,
+        // so it can't be backdated to bypass the cooldown.
+        (userId == uid()
+          && changed().hasOnly(['lastAwardAt'])
+          && request.resource.data.lastAwardAt == request.time)
       );
 
       allow delete: if false;
@@ -66,15 +81,23 @@ service cloud.firestore {
       allow update, delete: if false;
     }
 
-    // Aura awards (append-only). Any signed-in user, points in -10..10.
+    // Aura awards (append-only). Mentors: ±10, no cooldown. Non-mentors: ±1
+    // and at most one award per `awardCooldown` (anchored on users.lastAwardAt,
+    // which the award batch bumps — see the users update rule below).
     match /aura_transactions/{id} {
       allow read: if isSignedIn();
       allow create: if isSignedIn()
         && request.resource.data.fromUserId == uid()
         && request.resource.data.toUserId != uid()
         && request.resource.data.points is int
-        && request.resource.data.points >= -10
-        && request.resource.data.points <= 10;
+        && (
+          canAward(uid())
+            ? (request.resource.data.points >= -10
+               && request.resource.data.points <= 10)
+            : (request.resource.data.points >= -1
+               && request.resource.data.points <= 1
+               && request.time > lastAwardOf(uid()) + awardCooldown())
+        );
       allow update, delete: if false;
     }
 
