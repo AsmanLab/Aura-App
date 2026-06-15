@@ -45,7 +45,7 @@ class ProfileSummaryCard extends StatelessWidget {
                       overflow: TextOverflow.ellipsis,
                     ),
                     Text(
-                      user.email,
+                      user.positionLabel,
                       style: AppType.sm(c),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,

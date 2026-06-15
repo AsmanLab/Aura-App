@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 
 import 'package:aura_app/core/di/injection.dart';
@@ -60,7 +61,10 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
         return AppUserModel.fromFirebaseUser(_auth.currentUser!);
       }
 
-      final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
+      // Prefer a silent sign-in (no Safari/ASWebAuthenticationSession) when a
+      // Google session is already cached — avoids the simulator's web-auth bug.
+      GoogleSignInAccount? googleUser = await _googleSignIn.signInSilently();
+      googleUser ??= await _signInInteractive();
       if (googleUser == null) return null; // cancelled
 
       final googleAuth = await googleUser.authentication;
@@ -79,6 +83,42 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
     } catch (e) {
       debugPrint('Google Sign-In Error: $e');
       rethrow;
+    }
+  }
+
+  /// Interactive (web) sign-in with one retry on the iOS Simulator's transient
+  /// "network connection was lost" (NSURLErrorNetworkConnectionLost, -1005)
+  /// from ASWebAuthenticationSession.
+  Future<GoogleSignInAccount?> _signInInteractive() async {
+    try {
+      return await _googleSignIn.signIn();
+    } on PlatformException catch (e) {
+      final s = '${e.code} ${e.message}'.toLowerCase();
+      final transient = s.contains('network') ||
+          s.contains('connection') ||
+          s.contains('-1005');
+      if (!transient) rethrow;
+      // Clear the half-open session and retry once.
+      await _googleSignIn.signOut();
+      return await _googleSignIn.signIn();
+    }
+  }
+
+  /// Refresh the Firebase session without any UI using the cached Google
+  /// account. Returns true if re-authenticated.
+  Future<bool> _silentReauth() async {
+    try {
+      final acct = await _googleSignIn.signInSilently();
+      if (acct == null) return false;
+      final auth = await acct.authentication;
+      final cred = GoogleAuthProvider.credential(
+        accessToken: auth.accessToken,
+        idToken: auth.idToken,
+      );
+      await _auth.signInWithCredential(cred);
+      return true;
+    } catch (_) {
+      return false;
     }
   }
 
@@ -135,10 +175,19 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
     final user = _auth.currentUser;
     if (user == null) return;
     try {
-      await user.getIdToken(true); // forces a refresh; throws if revoked/expired
+      await user.getIdToken(true); // forces a refresh
+    } on FirebaseAuthException catch (e) {
+      // Offline → keep the session, just retry next launch. Don't log out.
+      if (e.code == 'network-request-failed') return;
+      // Credential expired/revoked → recover silently (no Safari) if possible.
+      if (await _silentReauth()) return;
+      // Couldn't recover → light sign-out (no Google disconnect, so the next
+      // login can reuse the cached session instead of the flaky web flow).
+      debugPrint('Token refresh failed, signing out: ${e.code}');
+      await _auth.signOut();
     } catch (e) {
-      debugPrint('Token refresh failed, signing out: $e');
-      await signOut();
+      // Unknown error (often a transient network blip) — keep the session.
+      debugPrint('Token refresh error (keeping session): $e');
     }
   }
 }

@@ -241,7 +241,7 @@ class _RestRow extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(user.displayName, style: AppType.h3(c)),
-                  Text(user.email, style: AppType.sm(c)),
+                  Text(user.positionLabel, style: AppType.sm(c)),
                 ],
               ),
             ),

@@ -184,7 +184,7 @@ class _StepBody extends StatelessWidget {
                                 style: AppType.h3(c),
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis),
-                            Text(u.email,
+                            Text(u.positionLabel,
                                 style: AppType.sm(c),
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis),
