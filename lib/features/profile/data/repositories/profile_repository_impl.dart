@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:aura_app/core/models/aura_transaction.dart';
 import 'package:aura_app/core/models/heart_transaction.dart';
 import 'package:aura_app/core/models/user_model.dart';
@@ -25,4 +27,20 @@ class ProfileRepositoryImpl implements ProfileRepository {
 
   @override
   Stream<UserModel?> watchUser(String id) => _remote.watchUser(id);
+
+  @override
+  Future<void> updateProfile(
+    String uid, {
+    String? displayName,
+    String? photoURL,
+  }) =>
+      _remote.updateProfile(
+        uid,
+        displayName: displayName,
+        photoURL: photoURL,
+      );
+
+  @override
+  Future<String> uploadPhoto(String uid, Uint8List bytes) =>
+      _remote.uploadPhoto(uid, bytes);
 }

@@ -1,4 +1,7 @@
+import 'dart:typed_data';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 
 import 'package:aura_app/core/models/aura_transaction.dart';
 import 'package:aura_app/core/models/heart_transaction.dart';
@@ -15,11 +18,24 @@ abstract class ProfileRemoteDataSource {
 
   /// Realtime: emits on every change to the user's doc (aura totals etc).
   Stream<UserModel?> watchUser(String id);
+
+  /// Update only owner-editable fields. `null` values are skipped.
+  /// Privileged fields (role/position/aura/hearts) are rejected by
+  /// firestore.rules.
+  Future<void> updateProfile(
+    String uid, {
+    String? displayName,
+    String? photoURL,
+  });
+
+  /// Upload a profile photo to Storage and return its download URL.
+  Future<String> uploadPhoto(String uid, Uint8List bytes);
 }
 
 class ProfileRemoteDataSourceImpl implements ProfileRemoteDataSource {
   final FirebaseFirestore _db;
-  ProfileRemoteDataSourceImpl(this._db);
+  final FirebaseStorage _storage;
+  ProfileRemoteDataSourceImpl(this._db, this._storage);
 
   @override
   Future<UserModel?> getUser(String id) async {
@@ -77,5 +93,25 @@ class ProfileRemoteDataSourceImpl implements ProfileRemoteDataSource {
     return _db.collection('users').doc(id).snapshots().map(
           (d) => d.exists ? UserModel.fromMap(d.data()!, d.id) : null,
         );
+  }
+
+  @override
+  Future<void> updateProfile(
+    String uid, {
+    String? displayName,
+    String? photoURL,
+  }) async {
+    final data = <String, dynamic>{};
+    if (displayName != null) data['displayName'] = displayName;
+    if (photoURL != null) data['photoURL'] = photoURL;
+    if (data.isEmpty) return;
+    await _db.collection('users').doc(uid).update(data);
+  }
+
+  @override
+  Future<String> uploadPhoto(String uid, Uint8List bytes) async {
+    final ref = _storage.ref('profile_photos/$uid.jpg');
+    await ref.putData(bytes, SettableMetadata(contentType: 'image/jpeg'));
+    return ref.getDownloadURL();
   }
 }

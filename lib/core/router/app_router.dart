@@ -15,6 +15,8 @@ import '../../features/knowledge/presentation/pages/article_page.dart';
 import '../../features/knowledge/presentation/pages/knowledge_page.dart';
 import '../../features/leaderboard/presentation/bloc/leaderboard_cubit.dart';
 import '../../features/leaderboard/presentation/pages/leaderboard_page.dart';
+import '../../features/profile/presentation/bloc/profile_edit_cubit.dart';
+import '../../features/profile/presentation/pages/profile_edit_page.dart';
 import '../../features/profile/presentation/pages/profile_page.dart';
 import 'package:aura_app/features/profile/presentation/pages/settings_page.dart';
 import 'package:aura_app/core/shell/app_shell.dart';
@@ -78,6 +80,16 @@ List<RouteBase> auraRoutes() => [
     pageBuilder: (context, state) => _slideRight(
       state,
       HistoryPage(userId: state.uri.queryParameters['userId']),
+    ),
+  ),
+  GoRoute(
+    path: '/aura/profile/edit',
+    pageBuilder: (context, state) => _slideRight(
+      state,
+      BlocProvider(
+        create: (_) => ProfileEditCubit(sl(), sl()),
+        child: const ProfileEditPage(),
+      ),
     ),
   ),
   GoRoute(

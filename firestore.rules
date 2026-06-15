@@ -31,9 +31,10 @@ service cloud.firestore {
         && request.resource.data.totalAura == 0;
 
       allow update: if isSignedIn() && (
-        // Owner edits non-privileged profile fields (no role/aura/hearts).
+        // Owner edits non-privileged profile fields (no role/position/aura/
+        // hearts — position is assigned, not self-editable).
         (userId == uid() && changed().hasOnly(
-          ['displayName', 'photoURL', 'position', 'fcmTokens',
+          ['displayName', 'photoURL', 'fcmTokens',
            'metadata', 'lastRouletteDate'])) ||
 
         // A mentor changes someone's hearts by ±1, kept within 0..8.

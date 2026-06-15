@@ -91,6 +91,14 @@ class _MyProfileViewState extends State<_MyProfileView> {
                 120,
               ),
               children: [
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: IconButton(
+                    icon: Icon(Icons.edit_outlined, color: c.text),
+                    tooltip: 'Edit profile',
+                    onPressed: () => context.push('/aura/profile/edit'),
+                  ),
+                ),
                 _Identity(user: user),
                 const SizedBox(height: AppSpacing.s5),
                 _StatsCards(user: user),

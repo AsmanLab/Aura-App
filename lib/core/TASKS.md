@@ -58,20 +58,21 @@ prompt. (Cloud Function send already exists — [`functions/index.js`](../../fun
 
 ---
 
-## 4. Profile edit  🔴
+## 4. Profile edit  🟢
 **Goal:** user edits their own profile (displayName, position, photo).
 
-**Approach**
-- `features/profile`: an edit page + `ProfileEditCubit`.
-- Writes only the owner-allowed fields — rules already permit `displayName`, `photoURL`,
-  `position`, `metadata` ([`firestore.rules`](../../firestore.rules)); **role/aura/hearts stay
-  locked**.
-- Photo: `image_picker` → Firebase Storage → save `photoURL`. (Add `firebase_storage`.)
-- Entry point: a pencil on the own-profile header → edit page; realtime profile already reflects
-  changes via `watchUser`.
+**Done**
+- [`features/profile`](../../lib/features/profile): [`profile_edit_page.dart`](../../lib/features/profile/presentation/pages/profile_edit_page.dart)
+  + [`ProfileEditCubit`](../../lib/features/profile/presentation/bloc/profile_edit_cubit.dart).
+- Writes only owner-allowed fields (`displayName`, `photoURL`) — rule-enforced
+  ([`firestore.rules`](../../firestore.rules)); **role/position/aura/hearts stay locked**
+  (position is assigned, not self-editable).
+- Photo: `image_picker` → Firebase Storage (`profile_photos/{uid}.jpg`) → save `photoURL`.
+  Storage rules in [`storage.rules`](../../storage.rules); iOS `NSPhotoLibraryUsageDescription` added.
+- Entry: pencil on own-profile header (`/aura/profile/edit`); realtime `watchUser` reflects changes.
 
-**Acceptance:** user updates name/position/photo; persists; visible everywhere live; can't touch
-privileged fields (rule-enforced).
+**Still owner's task:** `firebase deploy --only storage` (deploy `storage.rules`); confirm a
+Storage bucket exists in the Firebase console.
 
 ---
 
