@@ -8,6 +8,9 @@ import 'package:aura_app/features/award/data/datasources/award_remote_data_sourc
     show auraDailyLimit;
 import '../../domain/repositories/award_repository.dart';
 
+/// Sentinel for copyWith so the optional category can be cleared with `null`.
+const _noChange = Object();
+
 /// 4-step award flow (commands/06 §6.4). Steps: 0 recipient · 1 category ·
 /// 2 points · 3 confirm. Writes to Firebase on submit.
 class AwardState extends Equatable {
@@ -56,7 +59,7 @@ class AwardState extends Equatable {
 
   bool get canContinue => switch (step) {
     0 => recipientId != null,
-    1 => category != null,
+    1 => true, // category is optional
     _ => true,
   };
 
@@ -74,7 +77,8 @@ class AwardState extends Equatable {
     bool? isMentor,
     List<UserModel>? recipients,
     String? recipientId,
-    AuraCategory? category,
+    // Sentinel so a null can clear the category (it's optional).
+    Object? category = _noChange,
     int? points,
     String? comment,
     int? usedToday,
@@ -88,7 +92,7 @@ class AwardState extends Equatable {
     isMentor: isMentor ?? this.isMentor,
     recipients: recipients ?? this.recipients,
     recipientId: recipientId ?? this.recipientId,
-    category: category ?? this.category,
+    category: category == _noChange ? this.category : category as AuraCategory?,
     points: points ?? this.points,
     comment: comment ?? this.comment,
     usedToday: usedToday ?? this.usedToday,
@@ -146,8 +150,12 @@ class AwardCubit extends Cubit<AwardState> {
 
   void selectRecipient(String id) =>
       emit(state.copyWith(recipientId: id, step: 1));
-  void selectCategory(AuraCategory cat) =>
-      emit(state.copyWith(category: cat));
+
+  /// Tap a category to select it; tap the selected one again to clear it
+  /// (categories are optional).
+  void toggleCategory(AuraCategory cat) => emit(
+        state.copyWith(category: state.category == cat ? null : cat),
+      );
 
   void setPoints(int pts) => emit(
         state.copyWith(points: pts.clamp(state.minPoints, state.maxPoints)),
@@ -165,10 +173,8 @@ class AwardCubit extends Cubit<AwardState> {
   }
 
   Future<void> submit() async {
-    if (state.submitting || state.recipientId == null ||
-        state.category == null) {
-      return;
-    }
+    // Category is optional; only the recipient is required.
+    if (state.submitting || state.recipientId == null) return;
     // Client-side daily-quota guard (server enforces too via firestore.rules).
     if (state.quotaReached) {
       emit(state.copyWith(
@@ -183,7 +189,7 @@ class AwardCubit extends Cubit<AwardState> {
         toUserId: state.recipientId!,
         points: state.points,
         comment: state.comment,
-        category: state.category!,
+        category: state.category,
       );
       if (isClosed) return;
       // Count this award locally so the UI reflects the remaining quota.

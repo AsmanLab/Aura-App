@@ -31,7 +31,7 @@ class AwardRepositoryImpl implements AwardRepository {
     required String toUserId,
     required int points,
     required String comment,
-    required AuraCategory category,
+    AuraCategory? category,
   }) async {
     final me = await _auth.getUser();
     if (me == null) throw Exception('Not signed in');
@@ -50,7 +50,7 @@ class AwardRepositoryImpl implements AwardRepository {
       toUserId: toUserId,
       points: clamped,
       comment: comment.trim(),
-      category: category.name,
+      category: category?.name ?? '',
       timestamp: DateTime.now(),
       weekId: DateUtils.getCurrentWeekId(),
     );

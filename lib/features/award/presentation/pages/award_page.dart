@@ -202,8 +202,8 @@ class _StepBody extends StatelessWidget {
           children: [
             Text('What for?', style: AppType.h2(c)),
             const SizedBox(height: AppSpacing.s4),
-            // Tags first — each category is its own selectable tag.
-            Text('TAGS', style: AppType.label(c)),
+            // Tags first — each category is its own selectable tag (optional).
+            Text('TAGS (OPTIONAL)', style: AppType.label(c)),
             const SizedBox(height: AppSpacing.s3),
             Wrap(
               spacing: AppSpacing.s2,
@@ -213,7 +213,7 @@ class _StepBody extends StatelessWidget {
                   CategoryChip(
                     cat: cat,
                     selected: state.category == cat,
-                    onTap: () => cubit.selectCategory(cat),
+                    onTap: () => cubit.toggleCategory(cat),
                   ),
               ],
             ),
@@ -234,21 +234,9 @@ class _StepBody extends StatelessWidget {
             const SizedBox(height: AppSpacing.s5),
             Text('COMMENT', style: AppType.label(c)),
             const SizedBox(height: AppSpacing.s3),
-            TextField(
-              style: AppType.body(c),
-              onChanged: cubit.setComment,
-              maxLines: 3,
-              decoration: InputDecoration(
-                filled: true,
-                fillColor: c.surface,
-                hintText: 'Add a comment…',
-                hintStyle: AppType.bodyDim(c),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(AppSpacing.rSm),
-                  borderSide: BorderSide.none,
-                ),
-              ),
-            ),
+            // Controlled field so selecting a tag (which reflows the list)
+            // can't remount it and wipe the text.
+            _CommentField(initial: state.comment, onChanged: cubit.setComment),
           ],
         );
       case 2:
@@ -411,6 +399,49 @@ class _MentorsOnlyView extends StatelessWidget {
           ),
           const Spacer(),
         ],
+      ),
+    );
+  }
+}
+
+/// Comment box backed by its own controller so list reflow (selecting a tag)
+/// can't remount it and lose the text. Seeded once from state.
+class _CommentField extends StatefulWidget {
+  final String initial;
+  final ValueChanged<String> onChanged;
+  const _CommentField({required this.initial, required this.onChanged});
+
+  @override
+  State<_CommentField> createState() => _CommentFieldState();
+}
+
+class _CommentFieldState extends State<_CommentField> {
+  late final TextEditingController _ctrl =
+      TextEditingController(text: widget.initial);
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final c = Theme.of(context).extension<AppColors>()!;
+    return TextField(
+      controller: _ctrl,
+      style: AppType.body(c),
+      onChanged: widget.onChanged,
+      maxLines: 3,
+      decoration: InputDecoration(
+        filled: true,
+        fillColor: c.surface,
+        hintText: 'Add a comment…',
+        hintStyle: AppType.bodyDim(c),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(AppSpacing.rSm),
+          borderSide: BorderSide.none,
+        ),
       ),
     );
   }

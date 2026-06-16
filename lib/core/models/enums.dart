@@ -60,7 +60,9 @@ enum AuraCategory {
     Icons.volunteer_activism,
     Color(0xFF22D3EE),
   ),
-  reliability('Reliability', 'Надёжность', Icons.speed, Color(0xFF60A5FA));
+  reliability('Reliability', 'Надёжность', Icons.speed, Color(0xFF60A5FA)),
+  // The single negative category (use with a negative amount).
+  concern('Concern', 'Замечание', Icons.report_problem, Color(0xFFF87171));
 
   const AuraCategory(this.label, this.labelRu, this.icon, this.color);
 
@@ -71,6 +73,9 @@ enum AuraCategory {
 
   Color get tint => color.withValues(alpha: 0.13);
 
+  /// True for the negative category (pairs with a negative amount).
+  bool get isNegative => this == AuraCategory.concern;
+
   /// One-line guidance shown under the chip in the Award flow.
   String get hint => switch (this) {
     productivity => 'Shipping meaningful work consistently and on time.',
@@ -78,5 +83,6 @@ enum AuraCategory {
     codeQuality => 'Clean, well-tested, reviewable code.',
     helping => 'Lifting teammates up — pairing, reviews, docs.',
     reliability => 'Being someone the team can always count on.',
+    concern => 'Flag something that needs attention — keep it constructive.',
   };
 }

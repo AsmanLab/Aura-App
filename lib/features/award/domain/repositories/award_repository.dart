@@ -9,11 +9,11 @@ abstract class AwardRepository {
   Future<List<UserModel>> getRecipients();
 
   /// Writes the award + increments the recipient's aura.
-  /// Throws if the giver's role can't award (mentor-only).
+  /// Non-mentors are capped at ±1 and a daily quota. [category] is optional.
   Future<void> award({
     required String toUserId,
     required int points,
     required String comment,
-    required AuraCategory category,
+    AuraCategory? category,
   });
 }
