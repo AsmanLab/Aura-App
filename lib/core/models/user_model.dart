@@ -19,8 +19,11 @@ class UserModel {
 
   final DateTime? lastRouletteDate;
 
-  /// Last time this user gave aura. Used to rate-limit non-mentors (cooldown).
-  final DateTime? lastAwardAt;
+  /// Daily aura-giving quota for non-mentors. `awardDay` is a UTC `yyyymmdd`
+  /// key; `awardCount` is how many awards were given on that day. Reset when
+  /// the day rolls over. See [DateUtils.currentDayKeyUtc].
+  final int awardDay;
+  final int awardCount;
 
   final DateTime createdAt;
 
@@ -43,7 +46,8 @@ class UserModel {
     this.position = '',
     this.hearts = maxHearts,
     this.lastRouletteDate,
-    this.lastAwardAt,
+    this.awardDay = 0,
+    this.awardCount = 0,
     required this.createdAt,
     this.schemaVersion = 1,
     this.metadata = const {},
@@ -66,7 +70,8 @@ class UserModel {
       position: map['position'] ?? '',
       hearts: map['hearts'] ?? maxHearts,
       lastRouletteDate: (map['lastRouletteDate'] as Timestamp?)?.toDate(),
-      lastAwardAt: (map['lastAwardAt'] as Timestamp?)?.toDate(),
+      awardDay: map['awardDay'] ?? 0,
+      awardCount: map['awardCount'] ?? 0,
       createdAt:
           (map['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
       schemaVersion: map['schemaVersion'] ?? 1,
@@ -86,8 +91,8 @@ class UserModel {
       'hearts': hearts,
       'lastRouletteDate':
           lastRouletteDate != null ? Timestamp.fromDate(lastRouletteDate!) : null,
-      'lastAwardAt':
-          lastAwardAt != null ? Timestamp.fromDate(lastAwardAt!) : null,
+      'awardDay': awardDay,
+      'awardCount': awardCount,
       'createdAt': Timestamp.fromDate(createdAt),
       'schemaVersion': schemaVersion,
       'metadata': metadata,
@@ -104,7 +109,8 @@ class UserModel {
     String? position,
     int? hearts,
     DateTime? lastRouletteDate,
-    DateTime? lastAwardAt,
+    int? awardDay,
+    int? awardCount,
     int? schemaVersion,
     Map<String, dynamic>? metadata,
   }) {
@@ -119,7 +125,8 @@ class UserModel {
       position: position ?? this.position,
       hearts: hearts ?? this.hearts,
       lastRouletteDate: lastRouletteDate ?? this.lastRouletteDate,
-      lastAwardAt: lastAwardAt ?? this.lastAwardAt,
+      awardDay: awardDay ?? this.awardDay,
+      awardCount: awardCount ?? this.awardCount,
       createdAt: createdAt,
       schemaVersion: schemaVersion ?? this.schemaVersion,
       metadata: metadata ?? this.metadata,

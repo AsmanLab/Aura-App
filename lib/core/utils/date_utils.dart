@@ -1,4 +1,12 @@
 class DateUtils {
+  /// UTC calendar day as an int `yyyymmdd`. Matches firestore.rules `today()`
+  /// (derived from `request.time`, which is UTC) so the daily-quota counter
+  /// agrees on both sides. NOTE: the quota window resets at UTC midnight.
+  static int currentDayKeyUtc() {
+    final n = DateTime.now().toUtc();
+    return n.year * 10000 + n.month * 100 + n.day;
+  }
+
   static String getCurrentWeekId() {
     final now = DateTime.now();
     final mondayOfWeek = now.subtract(Duration(days: now.weekday - 1));

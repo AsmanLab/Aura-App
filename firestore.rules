@@ -1,7 +1,7 @@
 rules_version = '2';
 
 // Aura security rules. Heart writes are mentor-only. Aura: mentors give ±10
-// freely; non-mentors are capped at ±1 with a cooldown between awards. Users
+// freely; non-mentors are capped at ±1 and at most 2 awards per UTC day. Users
 // can only edit their own non-privileged profile fields. Deploy with:
 //   firebase deploy --only firestore:rules
 service cloud.firestore {
@@ -20,14 +20,24 @@ service cloud.firestore {
     function changed() {
       return request.resource.data.diff(resource.data).affectedKeys();
     }
-    // Giver's last-award time (epoch when unset) — anchors the non-mentor
-    // cooldown. Keep the window in sync with `awardCooldown` in award_cubit.dart.
-    function lastAwardOf(id) {
-      let d = get(/databases/$(database)/documents/users/$(id)).data;
-      return ('lastAwardAt' in d && d.lastAwardAt != null)
-        ? d.lastAwardAt : timestamp.value(0);
+    // Daily aura quota for non-mentors. `today()` is a UTC yyyymmdd int that
+    // matches DateUtils.currentDayKeyUtc on the client.
+    function today() {
+      return request.time.year() * 10000
+        + request.time.month() * 100
+        + request.time.day();
     }
-    function awardCooldown() { return duration.value(5, 'm'); }
+    // Awards a giver has already given today (0 on a new day / no counter yet).
+    function usedToday(id) {
+      let d = get(/databases/$(database)/documents/users/$(id)).data;
+      return d.get('awardDay', 0) == today() ? d.get('awardCount', 0) : 0;
+    }
+    // Prior-day-aware count for THIS user's own doc (in a users update).
+    function priorCount() {
+      return resource.data.get('awardDay', 0) == today()
+        ? resource.data.get('awardCount', 0) : 0;
+    }
+    function auraDailyLimit() { return 2; }
 
     match /users/{userId} {
       allow read: if isSignedIn();
@@ -58,11 +68,15 @@ service cloud.firestore {
         // Any signed-in user awards aura (both counters move together).
         (changed().hasOnly(['currentWeekAura', 'totalAura'])) ||
 
-        // Giver stamps their own cooldown clock on award — server time only,
-        // so it can't be backdated to bypass the cooldown.
+        // Non-mentor giver advances their own daily quota counter: must be
+        // today's key and exactly prior+1, never above the daily limit. The
+        // day key is server-derived so it can't be faked to reset early.
         (userId == uid()
-          && changed().hasOnly(['lastAwardAt'])
-          && request.resource.data.lastAwardAt == request.time)
+          && !canAward(uid())
+          && changed().hasOnly(['awardDay', 'awardCount'])
+          && request.resource.data.awardDay == today()
+          && request.resource.data.awardCount == priorCount() + 1
+          && request.resource.data.awardCount <= auraDailyLimit())
       );
 
       allow delete: if false;
@@ -81,9 +95,9 @@ service cloud.firestore {
       allow update, delete: if false;
     }
 
-    // Aura awards (append-only). Mentors: ±10, no cooldown. Non-mentors: ±1
-    // and at most one award per `awardCooldown` (anchored on users.lastAwardAt,
-    // which the award batch bumps — see the users update rule below).
+    // Aura awards (append-only). Mentors: ±10, unlimited. Non-mentors: ±1 and
+    // at most `auraDailyLimit()` per UTC day (counter on users, bumped in the
+    // same transaction — see the users update rule above).
     match /aura_transactions/{id} {
       allow read: if isSignedIn();
       allow create: if isSignedIn()
@@ -96,7 +110,7 @@ service cloud.firestore {
                && request.resource.data.points <= 10)
             : (request.resource.data.points >= -1
                && request.resource.data.points <= 1
-               && request.time > lastAwardOf(uid()) + awardCooldown())
+               && usedToday(uid()) < auraDailyLimit())
         );
       allow update, delete: if false;
     }

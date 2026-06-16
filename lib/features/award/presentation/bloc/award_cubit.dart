@@ -3,11 +3,10 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import 'package:aura_app/core/models/enums.dart';
 import 'package:aura_app/core/models/user_model.dart';
+import 'package:aura_app/core/utils/date_utils.dart';
+import 'package:aura_app/features/award/data/datasources/award_remote_data_source.dart'
+    show auraDailyLimit;
 import '../../domain/repositories/award_repository.dart';
-
-/// How often a non-mentor may give aura. Tune here (mirrored in firestore.rules
-/// as `duration.value(5, 'm')`).
-const awardCooldown = Duration(minutes: 5);
 
 /// 4-step award flow (commands/06 §6.4). Steps: 0 recipient · 1 category ·
 /// 2 points · 3 confirm. Writes to Firebase on submit.
@@ -15,15 +14,15 @@ class AwardState extends Equatable {
   final int step;
   final bool loading;
   final bool canAward; // signed in → allowed to give aura at all
-  final bool isMentor; // mentor/fullTime/admin → wide range, no cooldown
+  final bool isMentor; // mentor/fullTime/admin → wide range, no daily limit
   final List<UserModel> recipients;
   final String? recipientId;
   final AuraCategory? category;
   final int points;
   final String comment;
 
-  /// Giver's last award time (cooldown anchor for non-mentors).
-  final DateTime? lastAwardAt;
+  /// Awards the giver has already given today (non-mentors only).
+  final int usedToday;
 
   final bool submitting;
   final bool submitted;
@@ -39,7 +38,7 @@ class AwardState extends Equatable {
     this.category,
     this.points = 1,
     this.comment = '',
-    this.lastAwardAt,
+    this.usedToday = 0,
     this.submitting = false,
     this.submitted = false,
     this.error,
@@ -49,9 +48,11 @@ class AwardState extends Equatable {
   int get minPoints => isMentor ? -10 : -1;
   int get maxPoints => isMentor ? 10 : 1;
 
-  /// When the giver may award again (null = no cooldown / ready now).
-  DateTime? get cooldownUntil =>
-      (isMentor || lastAwardAt == null) ? null : lastAwardAt!.add(awardCooldown);
+  /// Awards left today (non-mentors). null = unlimited (mentor).
+  int? get remainingToday =>
+      isMentor ? null : (auraDailyLimit - usedToday).clamp(0, auraDailyLimit);
+
+  bool get quotaReached => remainingToday != null && remainingToday! <= 0;
 
   bool get canContinue => switch (step) {
     0 => recipientId != null,
@@ -76,7 +77,7 @@ class AwardState extends Equatable {
     AuraCategory? category,
     int? points,
     String? comment,
-    DateTime? lastAwardAt,
+    int? usedToday,
     bool? submitting,
     bool? submitted,
     String? error,
@@ -90,7 +91,7 @@ class AwardState extends Equatable {
     category: category ?? this.category,
     points: points ?? this.points,
     comment: comment ?? this.comment,
-    lastAwardAt: lastAwardAt ?? this.lastAwardAt,
+    usedToday: usedToday ?? this.usedToday,
     submitting: submitting ?? this.submitting,
     submitted: submitted ?? this.submitted,
     error: error,
@@ -107,7 +108,7 @@ class AwardState extends Equatable {
     category,
     points,
     comment,
-    lastAwardAt,
+    usedToday,
     submitting,
     submitted,
     error,
@@ -128,12 +129,15 @@ class AwardCubit extends Cubit<AwardState> {
     if (isClosed) return;
     final hasPreset =
         presetId != null && recipients.any((u) => u.id == presetId);
+    // Awards already given today (reset when the UTC day rolls over).
+    final today = DateUtils.currentDayKeyUtc();
+    final usedToday = (me != null && me.awardDay == today) ? me.awardCount : 0;
     emit(state.copyWith(
       loading: false,
       // Anyone signed in can give aura (hearts stay mentor-only).
       canAward: me != null,
       isMentor: me?.canAward ?? false,
-      lastAwardAt: me?.lastAwardAt,
+      usedToday: usedToday,
       recipients: recipients,
       recipientId: hasPreset ? presetId : null,
       step: hasPreset ? 1 : 0,
@@ -165,12 +169,11 @@ class AwardCubit extends Cubit<AwardState> {
         state.category == null) {
       return;
     }
-    // Client-side cooldown guard (server enforces too via firestore.rules).
-    final until = state.cooldownUntil;
-    if (until != null && DateTime.now().isBefore(until)) {
-      final secs = until.difference(DateTime.now()).inSeconds;
+    // Client-side daily-quota guard (server enforces too via firestore.rules).
+    if (state.quotaReached) {
       emit(state.copyWith(
-        error: 'Slow down — you can give aura again in ${_fmt(secs)}.',
+        error: "You've reached your daily limit of $auraDailyLimit aura. "
+            'Try again tomorrow.',
       ));
       return;
     }
@@ -183,17 +186,15 @@ class AwardCubit extends Cubit<AwardState> {
         category: state.category!,
       );
       if (isClosed) return;
-      emit(state.copyWith(submitting: false, submitted: true));
+      // Count this award locally so the UI reflects the remaining quota.
+      emit(state.copyWith(
+        submitting: false,
+        submitted: true,
+        usedToday: state.usedToday + 1,
+      ));
     } catch (e) {
       if (isClosed) return;
       emit(state.copyWith(submitting: false, error: e.toString()));
     }
-  }
-
-  static String _fmt(int secs) {
-    if (secs < 60) return '${secs}s';
-    final m = secs ~/ 60;
-    final s = secs % 60;
-    return s == 0 ? '${m}m' : '${m}m ${s}s';
   }
 }

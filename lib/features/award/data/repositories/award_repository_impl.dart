@@ -6,7 +6,8 @@ import 'package:aura_app/core/models/user_model.dart';
 import 'package:aura_app/core/utils/date_utils.dart';
 import 'package:aura_app/features/auth/domain/repositories/auth_repository.dart';
 import '../../domain/repositories/award_repository.dart';
-import '../datasources/award_remote_data_source.dart';
+import '../datasources/award_remote_data_source.dart'
+    show AwardRemoteDataSource, DailyLimitException, auraDailyLimit;
 
 class AwardRepositoryImpl implements AwardRepository {
   final AwardRemoteDataSource _remote;
@@ -53,6 +54,13 @@ class AwardRepositoryImpl implements AwardRepository {
       timestamp: DateTime.now(),
       weekId: DateUtils.getCurrentWeekId(),
     );
-    await _remote.award(txn);
+    try {
+      await _remote.award(txn, isMentor: me.canAward);
+    } on DailyLimitException {
+      throw Exception(
+        "You've reached your daily limit of $auraDailyLimit aura. "
+        'Try again tomorrow.',
+      );
+    }
   }
 }

@@ -13,6 +13,8 @@ import 'package:aura_app/core/widgets/app_card.dart';
 import 'package:aura_app/core/widgets/aura_value.dart';
 import 'package:aura_app/core/widgets/avatar.dart';
 import 'package:aura_app/core/widgets/category_chip.dart';
+import '../../data/datasources/award_remote_data_source.dart'
+    show auraDailyLimit;
 import '../bloc/award_cubit.dart';
 
 class AwardPage extends StatelessWidget {
@@ -329,6 +331,17 @@ class _StepBody extends StatelessWidget {
                 child: Text(state.comment.trim(), style: AppType.body(c)),
               ),
             ],
+            if (state.remainingToday != null) ...[
+              const SizedBox(height: AppSpacing.s4),
+              Center(
+                child: Text(
+                  state.quotaReached
+                      ? 'No aura left today — resets tomorrow.'
+                      : '${state.remainingToday} of $auraDailyLimit aura left today',
+                  style: AppType.sm(c).copyWith(color: c.textFaint),
+                ),
+              ),
+            ],
           ],
         );
     }
@@ -403,77 +416,23 @@ class _MentorsOnlyView extends StatelessWidget {
   }
 }
 
-/// Award button with a live cooldown countdown for rate-limited (non-mentor)
-/// givers. Ticks every second while the cooldown is active.
-class _AwardButton extends StatefulWidget {
+/// Award button that respects the daily quota for non-mentor givers.
+class _AwardButton extends StatelessWidget {
   final AwardState state;
   final AwardCubit cubit;
   const _AwardButton({required this.state, required this.cubit});
 
   @override
-  State<_AwardButton> createState() => _AwardButtonState();
-}
-
-class _AwardButtonState extends State<_AwardButton> {
-  Timer? _timer;
-
-  @override
-  void initState() {
-    super.initState();
-    _sync();
-  }
-
-  @override
-  void didUpdateWidget(_AwardButton old) {
-    super.didUpdateWidget(old);
-    _sync();
-  }
-
-  void _sync() {
-    final until = widget.state.cooldownUntil;
-    final active = until != null && DateTime.now().isBefore(until);
-    if (active && _timer == null) {
-      _timer = Timer.periodic(const Duration(seconds: 1), (_) {
-        if (!mounted) return;
-        final u = widget.state.cooldownUntil;
-        if (u == null || !DateTime.now().isBefore(u)) {
-          _timer?.cancel();
-          _timer = null;
-        }
-        setState(() {});
-      });
-    }
-  }
-
-  @override
-  void dispose() {
-    _timer?.cancel();
-    super.dispose();
-  }
-
-  static String _fmt(int secs) {
-    if (secs < 60) return '${secs}s';
-    final m = secs ~/ 60;
-    final s = secs % 60;
-    return s == 0 ? '${m}m' : '${m}m ${s}s';
-  }
-
-  @override
   Widget build(BuildContext context) {
-    final s = widget.state;
-    final until = s.cooldownUntil;
-    final remaining =
-        until == null ? 0 : until.difference(DateTime.now()).inSeconds;
-    final onCooldown = remaining > 0;
-    final label = s.submitting
+    final label = state.submitting
         ? 'Awarding…'
-        : onCooldown
-            ? 'Wait ${_fmt(remaining)}'
-            : 'Award ${s.points >= 0 ? '+' : ''}${s.points}';
+        : state.quotaReached
+            ? 'Daily limit reached'
+            : 'Award ${state.points >= 0 ? '+' : ''}${state.points}';
     return _PrimaryButton(
       label: label,
-      enabled: s.canContinue && !s.submitting && !onCooldown,
-      onTap: widget.cubit.submit,
+      enabled: state.canContinue && !state.submitting && !state.quotaReached,
+      onTap: cubit.submit,
     );
   }
 }
