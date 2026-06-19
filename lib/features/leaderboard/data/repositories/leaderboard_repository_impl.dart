@@ -1,6 +1,9 @@
+import 'dart:async';
+
 import 'package:firebase_auth/firebase_auth.dart';
 
 import 'package:aura_app/core/models/enums.dart';
+import 'package:aura_app/core/models/user_model.dart';
 import '../../domain/entities/leaderboard_entry.dart';
 import '../../domain/repositories/leaderboard_repository.dart';
 import '../datasources/leaderboard_remote_data_source.dart';
@@ -12,26 +15,64 @@ class LeaderboardRepositoryImpl implements LeaderboardRepository {
   LeaderboardRepositoryImpl(this._remote, this._auth);
 
   @override
-  Future<List<LeaderboardEntry>> getLeaderboard(LbFilter filter) async {
-    final users = await _remote.getUsers();
-
-    List<LeaderboardEntry> entries;
-    if (filter == LbFilter.month) {
-      final monthly = await _remote.monthlyTotals();
-      entries = users
-          .map((u) => LeaderboardEntry(u, monthly[u.id] ?? 0))
-          .toList();
-    } else {
-      entries = users
-          .map((u) => LeaderboardEntry(
-                u,
-                filter == LbFilter.week ? u.currentWeekAura : u.totalAura,
-              ))
-          .toList();
+  Stream<List<LeaderboardEntry>> watchLeaderboard(LbFilter filter) {
+    if (filter != LbFilter.month) {
+      return _remote.watchUsers().map((users) {
+        return _rank(
+          users.map(
+            (u) => LeaderboardEntry(
+              u,
+              filter == LbFilter.week ? u.currentWeekAura : u.totalAura,
+            ),
+          ),
+        );
+      });
     }
 
-    entries.sort((a, b) => b.score.compareTo(a.score));
-    return entries.take(50).toList();
+    late StreamController<List<LeaderboardEntry>> controller;
+    StreamSubscription<List<UserModel>>? usersSub;
+    StreamSubscription<Map<String, int>>? monthlySub;
+    List<UserModel>? latestUsers;
+    Map<String, int>? latestMonthly;
+
+    void emitIfReady() {
+      final users = latestUsers;
+      final monthly = latestMonthly;
+      if (users == null || monthly == null || controller.isClosed) return;
+
+      controller.add(
+        _rank(users.map((u) => LeaderboardEntry(u, monthly[u.id] ?? 0))),
+      );
+    }
+
+    controller = StreamController<List<LeaderboardEntry>>(
+      onListen: () {
+        usersSub = _remote.watchUsers().listen((users) {
+          latestUsers = users;
+          emitIfReady();
+        }, onError: controller.addError);
+        monthlySub = _remote.watchMonthlyTotals().listen((monthly) {
+          latestMonthly = monthly;
+          emitIfReady();
+        }, onError: controller.addError);
+      },
+      onCancel: () async {
+        await usersSub?.cancel();
+        await monthlySub?.cancel();
+      },
+    );
+
+    return controller.stream;
+  }
+
+  List<LeaderboardEntry> _rank(Iterable<LeaderboardEntry> entries) {
+    final ranked = entries.toList()
+      ..sort((a, b) {
+        final scoreCompare = b.score.compareTo(a.score);
+        if (scoreCompare != 0) return scoreCompare;
+        return a.user.displayName.compareTo(b.user.displayName);
+      });
+    return ranked.take(50).toList();
   }
 
   @override

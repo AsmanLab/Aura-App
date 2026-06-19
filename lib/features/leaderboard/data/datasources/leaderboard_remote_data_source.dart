@@ -3,12 +3,12 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:aura_app/core/models/aura_transaction.dart';
 import 'package:aura_app/core/models/user_model.dart';
 
-/// Reads users + aggregates this month's aura for the leaderboard.
+/// Reads users and aggregates this month's aura for the leaderboard.
 abstract class LeaderboardRemoteDataSource {
-  Future<List<UserModel>> getUsers();
+  Stream<List<UserModel>> watchUsers();
 
   /// Sum of aura points received per user since the start of this month.
-  Future<Map<String, int>> monthlyTotals();
+  Stream<Map<String, int>> watchMonthlyTotals();
 }
 
 class LeaderboardRemoteDataSourceImpl implements LeaderboardRemoteDataSource {
@@ -16,25 +16,36 @@ class LeaderboardRemoteDataSourceImpl implements LeaderboardRemoteDataSource {
   LeaderboardRemoteDataSourceImpl(this._db);
 
   @override
-  Future<List<UserModel>> getUsers() async {
-    final snap = await _db.collection('users').get();
-    return snap.docs.map((d) => UserModel.fromMap(d.data(), d.id)).toList();
+  Stream<List<UserModel>> watchUsers() {
+    return _db
+        .collection('users')
+        .snapshots()
+        .map(
+          (snap) =>
+              snap.docs.map((d) => UserModel.fromMap(d.data(), d.id)).toList(),
+        );
   }
 
   @override
-  Future<Map<String, int>> monthlyTotals() async {
+  Stream<Map<String, int>> watchMonthlyTotals() {
     final now = DateTime.now();
     final start = DateTime(now.year, now.month, 1);
-    // Single-field inequality on timestamp — no composite index needed.
-    final snap = await _db
+
+    return _db
         .collection('aura_transactions')
         .where('timestamp', isGreaterThanOrEqualTo: Timestamp.fromDate(start))
-        .get();
-    final totals = <String, int>{};
-    for (final d in snap.docs) {
-      final t = AuraTransaction.fromMap(d.data(), d.id);
-      totals.update(t.toUserId, (v) => v + t.points, ifAbsent: () => t.points);
-    }
-    return totals;
+        .snapshots()
+        .map((snap) {
+          final totals = <String, int>{};
+          for (final d in snap.docs) {
+            final t = AuraTransaction.fromMap(d.data(), d.id);
+            totals.update(
+              t.toUserId,
+              (v) => v + t.points,
+              ifAbsent: () => t.points,
+            );
+          }
+          return totals;
+        });
   }
 }
