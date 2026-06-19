@@ -1,13 +1,18 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
-import 'package:flutter/services.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 
 import 'package:aura_app/core/di/injection.dart';
 import 'package:aura_app/core/models/user_model.dart';
 import 'package:aura_app/core/services/push_service.dart';
 import '../models/app_user_model.dart';
+
+/// Firebase project's *web* OAuth client (google-services.json `client_type: 3`).
+/// Required so Android returns an idToken with the audience Firebase expects;
+/// harmless on iOS, where the clientId is read from GoogleService-Info.plist.
+const String _kGoogleServerClientId =
+    '594801867619-h4qdbs3f8f0bueg9v0jlictrd76r1fe2.apps.googleusercontent.com';
 
 /// Raw auth IO: FirebaseAuth + Google Sign-In + the user's Firestore doc.
 abstract class AuthRemoteDataSource {
@@ -29,7 +34,17 @@ abstract class AuthRemoteDataSource {
 class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  final GoogleSignIn _googleSignIn = GoogleSignIn(scopes: ['email']);
+
+  // google_sign_in 7.x: a process-wide singleton that must be initialized once
+  // before any auth call. `_initFuture` makes that lazy + idempotent.
+  final GoogleSignIn _googleSignIn = GoogleSignIn.instance;
+  Future<void>? _initFuture;
+
+  Future<void> _ensureInitialized() {
+    return _initFuture ??= _googleSignIn.initialize(
+      serverClientId: _kGoogleServerClientId,
+    );
+  }
 
   @override
   Stream<User?> authStateChanges() => _auth.authStateChanges();
@@ -60,19 +75,17 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
       if (_auth.currentUser != null) {
         return AppUserModel.fromFirebaseUser(_auth.currentUser!);
       }
+      await _ensureInitialized();
 
-      // Prefer a silent sign-in (no Safari/ASWebAuthenticationSession) when a
-      // Google session is already cached — avoids the simulator's web-auth bug.
-      GoogleSignInAccount? googleUser = await _googleSignIn.signInSilently();
+      // Prefer the lightweight (silent, no web view) path when a Google session
+      // is already cached — avoids the simulator's web-auth bug. Falls back to
+      // the interactive flow only when there's nothing cached.
+      GoogleSignInAccount? googleUser = await _googleSignIn
+          .attemptLightweightAuthentication();
       googleUser ??= await _signInInteractive();
-      if (googleUser == null) return null; // cancelled
+      if (googleUser == null) return null; // cancelled / unsupported platform
 
-      final googleAuth = await googleUser.authentication;
-      final credential = GoogleAuthProvider.credential(
-        accessToken: googleAuth.accessToken,
-        idToken: googleAuth.idToken,
-      );
-
+      final credential = _credentialFor(googleUser);
       final userCredential = await _auth.signInWithCredential(credential);
       final user = userCredential.user!;
       await _createUserIfNotExists(user);
@@ -86,21 +99,33 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
     }
   }
 
+  /// google_sign_in 7.x: `authentication` is a synchronous getter and only
+  /// exposes an `idToken` (access tokens moved to the separate authorization
+  /// flow). Firebase only needs the idToken.
+  AuthCredential _credentialFor(GoogleSignInAccount account) {
+    final auth = account.authentication;
+    return GoogleAuthProvider.credential(idToken: auth.idToken);
+  }
+
   /// Interactive (web) sign-in with one retry on the iOS Simulator's transient
   /// "network connection was lost" (NSURLErrorNetworkConnectionLost, -1005)
-  /// from ASWebAuthenticationSession.
+  /// surfaced as a `GoogleSignInException`.
   Future<GoogleSignInAccount?> _signInInteractive() async {
+    if (!_googleSignIn.supportsAuthenticate()) return null;
     try {
-      return await _googleSignIn.signIn();
-    } on PlatformException catch (e) {
-      final s = '${e.code} ${e.message}'.toLowerCase();
-      final transient = s.contains('network') ||
+      return await _googleSignIn.authenticate(scopeHint: const ['email']);
+    } on GoogleSignInException catch (e) {
+      if (e.code == GoogleSignInExceptionCode.canceled) return null;
+      final s = '${e.code} ${e.description}'.toLowerCase();
+      final transient =
+          e.code == GoogleSignInExceptionCode.interrupted ||
+          s.contains('network') ||
           s.contains('connection') ||
           s.contains('-1005');
       if (!transient) rethrow;
       // Clear the half-open session and retry once.
       await _googleSignIn.signOut();
-      return await _googleSignIn.signIn();
+      return await _googleSignIn.authenticate(scopeHint: const ['email']);
     }
   }
 
@@ -108,14 +133,10 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
   /// account. Returns true if re-authenticated.
   Future<bool> _silentReauth() async {
     try {
-      final acct = await _googleSignIn.signInSilently();
+      await _ensureInitialized();
+      final acct = await _googleSignIn.attemptLightweightAuthentication();
       if (acct == null) return false;
-      final auth = await acct.authentication;
-      final cred = GoogleAuthProvider.credential(
-        accessToken: auth.accessToken,
-        idToken: auth.idToken,
-      );
-      await _auth.signInWithCredential(cred);
+      await _auth.signInWithCredential(_credentialFor(acct));
       return true;
     } catch (_) {
       return false;
@@ -156,9 +177,12 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
     // disconnect() fully revokes the cached Google account so the next sign-in
     // shows the account chooser (clean switch). Falls back to signOut().
     try {
+      await _ensureInitialized();
       await _googleSignIn.disconnect();
     } catch (_) {
-      await _googleSignIn.signOut();
+      try {
+        await _googleSignIn.signOut();
+      } catch (_) {}
     }
     await _auth.signOut();
 
@@ -179,7 +203,7 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
     } on FirebaseAuthException catch (e) {
       // Offline → keep the session, just retry next launch. Don't log out.
       if (e.code == 'network-request-failed') return;
-      // Credential expired/revoked → recover silently (no Safari) if possible.
+      // Credential expired/revoked → recover silently (no web view) if possible.
       if (await _silentReauth()) return;
       // Couldn't recover → light sign-out (no Google disconnect, so the next
       // login can reuse the cached session instead of the flaky web flow).

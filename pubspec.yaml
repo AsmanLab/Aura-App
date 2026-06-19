@@ -3,7 +3,7 @@ description: "Team building fun app."
 
 publish_to: 'none' 
 
-version: 1.0.0+7
+version: 1.0.0+8
 
 environment:
   sdk: ^3.8.1
@@ -18,7 +18,7 @@ dependencies:
   go_router: ^16.0.0
   firebase_auth: ^5.7.0
   cloud_firestore: ^5.6.12
-  google_sign_in: ^6.3.0
+  google_sign_in: ^7.2.0
   uuid: ^4.5.1
   intl: ^0.20.2
   flutter_launcher_icons: ^0.14.4
