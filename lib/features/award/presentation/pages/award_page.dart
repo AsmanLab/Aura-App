@@ -41,7 +41,10 @@ class AwardPage extends StatelessWidget {
             await showDialog(
               context: context,
               barrierDismissible: false,
-              builder: (_) => _SuccessDialog(points: state.points),
+              builder: (_) => _SuccessDialog(
+                points: state.points,
+                count: state.recipientIds.length,
+              ),
             );
             if (context.mounted) context.pop();
           },
@@ -152,46 +155,42 @@ class _StepBody extends StatelessWidget {
     final pad = const EdgeInsets.all(AppSpacing.screenPad);
     switch (state.step) {
       case 0:
+        final selected = state.recipientIds;
         return ListView(
           padding: pad,
           children: [
-            Text('Who is it for?', style: AppType.h2(c)),
+            if (state.isMentor)
+              Row(
+                children: [
+                  Expanded(child: Text('Who is it for?', style: AppType.h2(c))),
+                  if (selected.isNotEmpty)
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: AppSpacing.s3,
+                        vertical: AppSpacing.s1,
+                      ),
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(colors: [c.accent1, c.accent2]),
+                        borderRadius: BorderRadius.circular(AppSpacing.rChip),
+                      ),
+                      child: Text(
+                        '${selected.length} selected',
+                        style: AppType.sm(c).copyWith(color: Colors.white),
+                      ),
+                    ),
+                ],
+              )
+            else
+              Text('Who is it for?', style: AppType.h2(c)),
             const SizedBox(height: AppSpacing.s4),
             for (final u in state.recipients)
               Padding(
                 padding: const EdgeInsets.only(bottom: AppSpacing.s3),
-                child: AppCard(
-                  onTap: () => cubit.selectRecipient(u.id),
-                  border: Border.all(
-                    color:
-                        state.recipientId == u.id ? c.accentSolid : c.border,
-                  ),
-                  child: Row(
-                    children: [
-                      Avatar(
-                        id: u.id,
-                        name: u.displayName,
-                        photoUrl: u.photoURL,
-                        size: 40,
-                      ),
-                      const SizedBox(width: AppSpacing.s3),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(u.displayName,
-                                style: AppType.h3(c),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis),
-                            Text(u.positionLabel,
-                                style: AppType.sm(c),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
+                child: _RecipientTile(
+                  user: u,
+                  selected: selected.contains(u.id),
+                  showCheckmark: state.isMentor,
+                  onTap: () => cubit.toggleRecipient(u.id),
                 ),
               ),
           ],
@@ -202,7 +201,6 @@ class _StepBody extends StatelessWidget {
           children: [
             Text('What for?', style: AppType.h2(c)),
             const SizedBox(height: AppSpacing.s4),
-            // Tags first — each category is its own selectable tag (optional).
             Text('TAGS (OPTIONAL)', style: AppType.label(c)),
             const SizedBox(height: AppSpacing.s3),
             Wrap(
@@ -230,12 +228,9 @@ class _StepBody extends StatelessWidget {
                 ),
               ),
             ],
-            // Comment after the tags.
             const SizedBox(height: AppSpacing.s5),
             Text('COMMENT', style: AppType.label(c)),
             const SizedBox(height: AppSpacing.s3),
-            // Controlled field so selecting a tag (which reflows the list)
-            // can't remount it and wipe the text.
             _CommentField(initial: state.comment, onChanged: cubit.setComment),
           ],
         );
@@ -284,32 +279,48 @@ class _StepBody extends StatelessWidget {
           ],
         );
       default:
+        final selected = state.selectedRecipients;
         return ListView(
           padding: pad,
           children: [
             Text('Review', style: AppType.h2(c)),
             const SizedBox(height: AppSpacing.s4),
-            AppCard(
-              child: Row(
+            AppCard.flush(
+              child: Column(
                 children: [
-                  if (state.recipient != null)
-                    Avatar(
-                      id: state.recipient!.id,
-                      name: state.recipient!.displayName,
-                      photoUrl: state.recipient!.photoURL,
-                      size: 40,
+                  for (var i = 0; i < selected.length; i++)
+                    Container(
+                      padding: const EdgeInsets.all(AppSpacing.s4),
+                      decoration: BoxDecoration(
+                        border: i != selected.length - 1
+                            ? Border(bottom: BorderSide(color: c.border))
+                            : null,
+                      ),
+                      child: Row(
+                        children: [
+                          Avatar(
+                            id: selected[i].id,
+                            name: selected[i].displayName,
+                            photoUrl: selected[i].photoURL,
+                            size: 40,
+                          ),
+                          const SizedBox(width: AppSpacing.s3),
+                          Expanded(
+                            child: Text(
+                              selected[i].displayName,
+                              style: AppType.h3(c),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          if (state.category != null) ...[
+                            CategoryTag(cat: state.category!),
+                            const SizedBox(width: AppSpacing.s3),
+                          ],
+                          AuraPoints(state.points),
+                        ],
+                      ),
                     ),
-                  const SizedBox(width: AppSpacing.s3),
-                  Expanded(
-                    child: Text(state.recipient?.displayName ?? '',
-                        style: AppType.h3(c),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis),
-                  ),
-                  if (state.category != null)
-                    CategoryTag(cat: state.category!),
-                  const SizedBox(width: AppSpacing.s3),
-                  AuraPoints(state.points),
                 ],
               ),
             ),
@@ -333,6 +344,77 @@ class _StepBody extends StatelessWidget {
           ],
         );
     }
+  }
+}
+
+class _RecipientTile extends StatelessWidget {
+  final dynamic user;
+  final bool selected;
+  final bool showCheckmark;
+  final VoidCallback onTap;
+
+  const _RecipientTile({
+    required this.user,
+    required this.selected,
+    this.showCheckmark = false,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final c = Theme.of(context).extension<AppColors>()!;
+    return AppCard(
+        onTap: onTap,
+        border: Border.all(
+          color: selected ? c.accentSolid : c.border,
+          width: selected ? 2 : 1,
+        ),
+        child: Row(
+          children: [
+            Avatar(
+              id: user.id,
+              name: user.displayName,
+              photoUrl: user.photoURL,
+              size: 40,
+            ),
+            const SizedBox(width: AppSpacing.s3),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(user.displayName,
+                      style: AppType.h3(c),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis),
+                  Text(user.positionLabel,
+                      style: AppType.sm(c),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis),
+                ],
+              ),
+            ),
+            if (showCheckmark)
+              AnimatedContainer(
+                duration: AppDurations.fast,
+                width: 24,
+                height: 24,
+                decoration: BoxDecoration(
+                  gradient: selected
+                      ? LinearGradient(colors: [c.accent1, c.accent2])
+                      : null,
+                  color: selected ? null : c.surface3,
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: selected ? Colors.transparent : c.border,
+                  ),
+                ),
+                child: selected
+                    ? const Icon(Icons.check, color: Colors.white, size: 14)
+                    : null,
+              ),
+          ],
+        ),
+      );
   }
 }
 
@@ -404,8 +486,6 @@ class _MentorsOnlyView extends StatelessWidget {
   }
 }
 
-/// Comment box backed by its own controller so list reflow (selecting a tag)
-/// can't remount it and lose the text. Seeded once from state.
 class _CommentField extends StatefulWidget {
   final String initial;
   final ValueChanged<String> onChanged;
@@ -447,7 +527,6 @@ class _CommentFieldState extends State<_CommentField> {
   }
 }
 
-/// Award button that respects the daily quota for non-mentor givers.
 class _AwardButton extends StatelessWidget {
   final AwardState state;
   final AwardCubit cubit;
@@ -455,11 +534,16 @@ class _AwardButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final count = state.recipientIds.length;
+    final pts = state.points;
+    final sign = pts >= 0 ? '+' : '';
     final label = state.submitting
         ? 'Awarding…'
         : state.quotaReached
             ? 'Daily limit reached'
-            : 'Award ${state.points >= 0 ? '+' : ''}${state.points}';
+            : count > 1
+                ? 'Award $sign$pts to $count people'
+                : 'Award $sign$pts';
     return _PrimaryButton(
       label: label,
       enabled: state.canContinue && !state.submitting && !state.quotaReached,
@@ -506,7 +590,8 @@ class _PrimaryButton extends StatelessWidget {
 
 class _SuccessDialog extends StatefulWidget {
   final int points;
-  const _SuccessDialog({required this.points});
+  final int count;
+  const _SuccessDialog({required this.points, required this.count});
 
   @override
   State<_SuccessDialog> createState() => _SuccessDialogState();
@@ -518,7 +603,6 @@ class _SuccessDialogState extends State<_SuccessDialog> {
   @override
   void initState() {
     super.initState();
-    // Auto-close once, after the pop animation settles.
     _timer = Timer(const Duration(milliseconds: 1600), () {
       if (mounted) Navigator.of(context).pop();
     });
@@ -534,6 +618,7 @@ class _SuccessDialogState extends State<_SuccessDialog> {
   Widget build(BuildContext context) {
     final c = Theme.of(context).extension<AppColors>()!;
     final points = widget.points;
+    final count = widget.count;
     return Dialog(
       backgroundColor: Colors.transparent,
       child: TweenAnimationBuilder<double>(
@@ -565,7 +650,10 @@ class _SuccessDialogState extends State<_SuccessDialog> {
                 const SizedBox(height: AppSpacing.s4),
                 AuraPoints(points, size: 40),
                 const SizedBox(height: AppSpacing.s2),
-                Text('Aura awarded!', style: AppType.h3(c)),
+                Text(
+                  count > 1 ? 'Aura awarded to $count people!' : 'Aura awarded!',
+                  style: AppType.h3(c),
+                ),
               ],
             ),
           ),

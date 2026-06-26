@@ -11,15 +11,14 @@ import '../../domain/repositories/award_repository.dart';
 /// Sentinel for copyWith so the optional category can be cleared with `null`.
 const _noChange = Object();
 
-/// 4-step award flow (commands/06 §6.4). Steps: 0 recipient · 1 category ·
-/// 2 points · 3 confirm. Writes to Firebase on submit.
+/// 4-step award flow. Steps: 0 recipients · 1 category · 2 points · 3 confirm.
 class AwardState extends Equatable {
   final int step;
   final bool loading;
-  final bool canAward; // signed in → allowed to give aura at all
-  final bool isMentor; // mentor/fullTime/admin → wide range, no daily limit
+  final bool canAward;
+  final bool isMentor;
   final List<UserModel> recipients;
-  final String? recipientId;
+  final Set<String> recipientIds;
   final AuraCategory? category;
   final int points;
   final String comment;
@@ -37,7 +36,7 @@ class AwardState extends Equatable {
     this.canAward = false,
     this.isMentor = false,
     this.recipients = const [],
-    this.recipientId,
+    this.recipientIds = const {},
     this.category,
     this.points = 1,
     this.comment = '',
@@ -47,7 +46,6 @@ class AwardState extends Equatable {
     this.error,
   });
 
-  // Non-mentors are capped at ±1; mentors keep the wide range.
   int get minPoints => isMentor ? -10 : -1;
   int get maxPoints => isMentor ? 10 : 1;
 
@@ -58,17 +56,13 @@ class AwardState extends Equatable {
   bool get quotaReached => remainingToday != null && remainingToday! <= 0;
 
   bool get canContinue => switch (step) {
-    0 => recipientId != null,
-    1 => true, // category is optional
+    0 => recipientIds.isNotEmpty,
+    1 => true,
     _ => true,
   };
 
-  UserModel? get recipient => recipientId == null
-      ? null
-      : recipients.cast<UserModel?>().firstWhere(
-            (u) => u?.id == recipientId,
-            orElse: () => null,
-          );
+  List<UserModel> get selectedRecipients =>
+      recipients.where((u) => recipientIds.contains(u.id)).toList();
 
   AwardState copyWith({
     int? step,
@@ -76,8 +70,7 @@ class AwardState extends Equatable {
     bool? canAward,
     bool? isMentor,
     List<UserModel>? recipients,
-    String? recipientId,
-    // Sentinel so a null can clear the category (it's optional).
+    Set<String>? recipientIds,
     Object? category = _noChange,
     int? points,
     String? comment,
@@ -91,7 +84,7 @@ class AwardState extends Equatable {
     canAward: canAward ?? this.canAward,
     isMentor: isMentor ?? this.isMentor,
     recipients: recipients ?? this.recipients,
-    recipientId: recipientId ?? this.recipientId,
+    recipientIds: recipientIds ?? this.recipientIds,
     category: category == _noChange ? this.category : category as AuraCategory?,
     points: points ?? this.points,
     comment: comment ?? this.comment,
@@ -103,19 +96,9 @@ class AwardState extends Equatable {
 
   @override
   List<Object?> get props => [
-    step,
-    loading,
-    canAward,
-    isMentor,
-    recipients,
-    recipientId,
-    category,
-    points,
-    comment,
-    usedToday,
-    submitting,
-    submitted,
-    error,
+    step, loading, canAward, isMentor, recipients,
+    recipientIds, category, points, comment,
+    usedToday, submitting, submitted, error,
   ];
 }
 
@@ -133,26 +116,34 @@ class AwardCubit extends Cubit<AwardState> {
     if (isClosed) return;
     final hasPreset =
         presetId != null && recipients.any((u) => u.id == presetId);
-    // Awards already given today (reset when the UTC day rolls over).
     final today = DateUtils.currentDayKeyUtc();
     final usedToday = (me != null && me.awardDay == today) ? me.awardCount : 0;
     emit(state.copyWith(
       loading: false,
-      // Anyone signed in can give aura (hearts stay mentor-only).
       canAward: me != null,
       isMentor: me?.canAward ?? false,
       usedToday: usedToday,
       recipients: recipients,
-      recipientId: hasPreset ? presetId : null,
+      recipientIds: hasPreset ? {presetId} : const {},
       step: hasPreset ? 1 : 0,
     ));
   }
 
-  void selectRecipient(String id) =>
-      emit(state.copyWith(recipientId: id, step: 1));
+  /// Mentors: toggle multi-select. Non-mentors: single select + auto-advance.
+  void toggleRecipient(String id) {
+    if (state.isMentor) {
+      final ids = Set<String>.from(state.recipientIds);
+      if (ids.contains(id)) {
+        ids.remove(id);
+      } else {
+        ids.add(id);
+      }
+      emit(state.copyWith(recipientIds: ids));
+    } else {
+      emit(state.copyWith(recipientIds: {id}, step: 1));
+    }
+  }
 
-  /// Tap a category to select it; tap the selected one again to clear it
-  /// (categories are optional).
   void toggleCategory(AuraCategory cat) => emit(
         state.copyWith(category: state.category == cat ? null : cat),
       );
@@ -173,9 +164,7 @@ class AwardCubit extends Cubit<AwardState> {
   }
 
   Future<void> submit() async {
-    // Category is optional; only the recipient is required.
-    if (state.submitting || state.recipientId == null) return;
-    // Client-side daily-quota guard (server enforces too via firestore.rules).
+    if (state.submitting || state.recipientIds.isEmpty) return;
     if (state.quotaReached) {
       emit(state.copyWith(
         error: "You've reached your daily limit of $auraDailyLimit aura. "
@@ -184,22 +173,23 @@ class AwardCubit extends Cubit<AwardState> {
       return;
     }
     emit(state.copyWith(submitting: true, error: null));
+    var awarded = 0;
     try {
-      await _repo.award(
-        toUserId: state.recipientId!,
-        points: state.points,
-        comment: state.comment,
-        category: state.category,
-      );
-      if (isClosed) return;
-      // Count this award locally so the UI reflects the remaining quota.
+      for (final id in state.recipientIds) {
+        await _repo.award(
+          toUserId: id,
+          points: state.points,
+          comment: state.comment,
+          category: state.category,
+        );
+        awarded++;
+      }
       emit(state.copyWith(
         submitting: false,
         submitted: true,
-        usedToday: state.usedToday + 1,
+        usedToday: state.usedToday + awarded,
       ));
     } catch (e) {
-      if (isClosed) return;
       emit(state.copyWith(submitting: false, error: e.toString()));
     }
   }
