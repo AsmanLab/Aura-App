@@ -21,7 +21,7 @@ class AttendanceService {
   Future<void> markAttendance({required double latitude, required double longitude}) async {
     final currentUser = _auth.currentUser;
     if (currentUser == null) throw Exception('User not authenticated');
-    if (!isWithinTimeWindow()) throw Exception('Attendance is available Monday-Friday, 13:00-15:00');
+    if (!isWithinTimeWindow()) throw Exception('Attendance is only available Monday–Friday, 13:00–15:00');
     if (!await _isWithinClassLocation(latitude, longitude)) throw Exception('You are outside the office location');
     final now = _now;
     final recordId = '${currentUser.uid}_${attendanceDateKey(now)}';
@@ -72,6 +72,7 @@ class AttendanceService {
     return _firestore
         .collection('attendance')
         .where('userId', isEqualTo: userId)
+        .limit(90) // ~3 months of weekdays; add composite index + orderBy when it exists
         .snapshots()
         .map((snapshot) {
           final records = snapshot.docs
@@ -83,11 +84,11 @@ class AttendanceService {
   }
 
   bool isWithinTimeWindow() {
-    final now = _now;
+    final now = DateTime.now(); // local time — window is expressed in local time
     final weekday = now.weekday;
     if (weekday < 1 || weekday > 5) return false;
     final timeInMinutes = now.hour * 60 + now.minute;
-    return timeInMinutes >= 7 * 60 && timeInMinutes <= 9 * 60;
+    return timeInMinutes >= 13 * 60 && timeInMinutes <= 15 * 60;
   }
 
   static String attendanceDateKey(DateTime date) {
@@ -107,7 +108,7 @@ class AttendanceService {
       final byUser = <String, AttendanceRecord>{};
       for (final record in records) {
         final prev = byUser[record.userId];
-        if (prev == null || record.timestamp.isBefore(prev.timestamp)) {
+        if (prev == null || record.timestamp.isAfter(prev.timestamp)) {
           byUser[record.userId] = record;
         }
       }
@@ -139,6 +140,7 @@ class AttendanceService {
   Stream<List<UserModel>> watchAllUsers() {
     return _firestore
         .collection('users')
+        .limit(200)
         .snapshots()
         .map((s) => s.docs.map((d) => UserModel.fromMap(d.data(), d.id)).toList());
   }

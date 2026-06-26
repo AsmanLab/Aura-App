@@ -59,6 +59,7 @@ class LeaderboardRepositoryImpl implements LeaderboardRepository {
       onCancel: () async {
         await usersSub?.cancel();
         await monthlySub?.cancel();
+        await controller.close();
       },
     );
 

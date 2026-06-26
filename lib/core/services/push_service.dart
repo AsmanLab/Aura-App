@@ -28,6 +28,10 @@ class PushService {
   final FirebaseFirestore _db;
   final FirebaseAuth _auth;
 
+  StreamSubscription<RemoteMessage>? _foregroundSub;
+  StreamSubscription<RemoteMessage>? _openedSub;
+  StreamSubscription<String>? _tokenRefreshSub;
+
   PushService(this._fcm, this._db, this._auth);
 
   Future<void> init() async {
@@ -40,14 +44,14 @@ class PushService {
       sound: false,
     );
 
-    FirebaseMessaging.onMessage.listen(_onForeground);
-    FirebaseMessaging.onMessageOpenedApp.listen(_onOpened);
+    _foregroundSub = FirebaseMessaging.onMessage.listen(_onForeground);
+    _openedSub = FirebaseMessaging.onMessageOpenedApp.listen(_onOpened);
 
     final initial = await _fcm.getInitialMessage();
     if (initial != null) _onOpened(initial);
 
     // Persist a rotated token for whoever is signed in.
-    _fcm.onTokenRefresh.listen((t) {
+    _tokenRefreshSub = _fcm.onTokenRefresh.listen((t) {
       final uid = _auth.currentUser?.uid;
       if (uid != null) {
         _save(uid, t).catchError((Object e) {
@@ -62,6 +66,12 @@ class PushService {
     // there's no race that writes only `fcmTokens`.)
     final current = _auth.currentUser;
     if (current != null) await syncToken(current.uid);
+  }
+
+  Future<void> dispose() async {
+    await _foregroundSub?.cancel();
+    await _openedSub?.cancel();
+    await _tokenRefreshSub?.cancel();
   }
 
   /// Save this device's current FCM token under the user. Only call once the

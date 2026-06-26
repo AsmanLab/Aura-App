@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 
 /// Deterministic gradient palette for initials avatars. See commands/04 §4.3.
@@ -80,12 +81,13 @@ class Avatar extends StatelessWidget {
         ),
       ),
       child: hasPhoto
-          ? Image.network(
-              photoUrl!,
+          ? CachedNetworkImage(
+              imageUrl: photoUrl!,
               fit: BoxFit.cover,
               width: size,
               height: size,
-              errorBuilder: (_, __, ___) => Center(child: initials),
+              errorWidget: (_, __, ___) => Center(child: initials),
+              placeholder: (_, __) => const SizedBox.shrink(),
             )
           : initials,
     );

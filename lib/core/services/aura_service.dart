@@ -1,25 +1,9 @@
-import 'dart:async';
-
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uuid/uuid.dart';
 import 'package:aura_app/core/models/aura_transaction.dart';
 import 'package:aura_app/core/models/user_model.dart';
 import '../utils/date_utils.dart';
-
-final auraServiceProvider = Provider<AuraService>((ref) => AuraService());
-
-final leaderboardProvider = StreamProvider<List<UserModel>>((ref) {
-  final auraService = ref.watch(auraServiceProvider);
-  return auraService.getLeaderboard();
-});
-
-// Use simple method that doesn't require composite index
-final auraHistoryProvider = StreamProvider.family<List<AuraTransaction>, String>((ref, userId) {
-  final auraService = ref.watch(auraServiceProvider);
-  return auraService.getAuraHistorySimple(userId);
-});
 
 class AuraService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -87,30 +71,6 @@ class AuraService {
             .toList());
   }
 
-  Stream<List<AuraTransaction>> getAuraHistory(String userId) {
-    
-    return _firestore
-        .collection('aura_transactions')
-        .where('toUserId', isEqualTo: userId)
-        .orderBy('timestamp', descending: true)
-        .limit(100)
-        .snapshots()
-        .map((snapshot) {
-          return snapshot.docs
-              .map((doc) {
-                try {
-                  return AuraTransaction.fromMap(doc.data(), doc.id);
-                } catch (e) {
-                  return null;
-                }
-              })
-              .where((transaction) => transaction != null)
-              .cast<AuraTransaction>()
-              .toList();
-        });
-  }
-
-  // Alternative method without orderBy to test if indexing is the issue
   Stream<List<AuraTransaction>> getAuraHistorySimple(String userId) {
     
     return _firestore
@@ -135,23 +95,6 @@ class AuraService {
           transactions.sort((a, b) => b.timestamp.compareTo(a.timestamp));
           return transactions;
         });
-  }
-
-  // Method to test if any transactions exist for a user
-  Future<List<AuraTransaction>> getAuraHistoryOnce(String userId) async {
-    try {
-      final snapshot = await _firestore
-          .collection('aura_transactions')
-          .where('toUserId', isEqualTo: userId)
-          .get();
-      
-      
-      return snapshot.docs
-          .map((doc) => AuraTransaction.fromMap(doc.data(), doc.id))
-          .toList();
-    } catch (e) {
-      rethrow;
-    }
   }
 
   Future<List<UserModel>> getAllUsers() async {
