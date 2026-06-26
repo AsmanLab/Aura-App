@@ -35,6 +35,7 @@ import 'package:aura_app/core/domain/repositories/people_repository.dart';
 import 'package:aura_app/core/domain/repositories/settings_repository.dart';
 import '../../features/attendance/data/repositories/attendance_repository_impl.dart';
 import '../../features/attendance/domain/repositories/attendance_repository.dart';
+import '../services/user_profile_service.dart';
 
 /// Service locator. Bind domain interfaces to seed-backed implementations here;
 /// swap to Firestore-backed impls without touching presentation.
@@ -101,6 +102,11 @@ Future<void> setupDi() async {
   // Attendance
   sl.registerLazySingleton<AttendanceRepository>(
     () => AttendanceRepositoryImpl(),
+  );
+
+  // User profile (aggregates profile + attendance for the other-user view)
+  sl.registerLazySingleton<UserProfileService>(
+    () => UserProfileService(sl(), sl()),
   );
 
   // Repositories (seed-backed).

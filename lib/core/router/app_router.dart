@@ -4,10 +4,9 @@ import 'package:go_router/go_router.dart';
 
 import '../../features/award/presentation/bloc/award_cubit.dart';
 import '../../features/award/presentation/pages/award_page.dart';
-import '../../features/attendance/domain/repositories/attendance_repository.dart';
-import '../../features/attendance/presentation/bloc/attendance_cubit.dart';
 import '../../features/attendance/presentation/pages/attendance_page.dart';
-import '../../features/auth/domain/repositories/auth_repository.dart';
+import 'package:aura_app/core/services/user_profile_service.dart';
+import 'package:aura_app/features/profile/presentation/bloc/user_profile_cubit.dart';
 import '../../features/duty/presentation/bloc/duty_cubit.dart';
 import '../../features/duty/presentation/pages/duty_page.dart';
 import '../../features/history/presentation/pages/history_page.dart';
@@ -98,8 +97,16 @@ List<RouteBase> auraRoutes() => [
   ),
   GoRoute(
     path: '/aura/profile/:id',
-    builder: (context, state) =>
-        ProfilePage(id: state.pathParameters['id']),
+    pageBuilder: (context, state) {
+      final id = state.pathParameters['id']!;
+      return _slideRight(
+        state,
+        BlocProvider(
+          create: (_) => UserProfileCubit(sl<UserProfileService>(), id),
+          child: ProfilePage(id: id),
+        ),
+      );
+    },
   ),
   GoRoute(
     path: '/aura/knowledge/article/:id',

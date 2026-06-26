@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
 import 'package:aura_app/core/models/attendance_transaction.dart';
@@ -285,7 +286,10 @@ class _StatusRow extends StatelessWidget {
       chipColor = c.success;
     }
 
-    return Container(
+    return GestureDetector(
+      onTap: () => context.push('/aura/profile/${status.user.id}'),
+      behavior: HitTestBehavior.opaque,
+      child: Container(
       padding: const EdgeInsets.all(AppSpacing.s4),
       decoration: BoxDecoration(
         border: divider ? Border(bottom: BorderSide(color: c.border)) : null,
@@ -312,6 +316,7 @@ class _StatusRow extends StatelessWidget {
             child: Text(label, style: AppType.sm(c).copyWith(color: chipColor)),
           ),
         ],
+      ),
       ),
     );
   }
