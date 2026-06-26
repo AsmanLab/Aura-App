@@ -149,39 +149,16 @@ class AttendanceService {
         .map((s) => s.docs.map((d) => AttendanceRecord.fromMap(d.data(), d.id)).toList());
   }
 
+  // Office coordinates (Bishkek). Change here if the office moves.
+  static const double _officeLat = 42.8735;
+  static const double _officeLng = 74.5752;
+  static const double _officeRadiusMeters = 50.0;
+
   Future<bool> _isWithinClassLocation(double latitude, double longitude) async {
-    await _loadOffice();
-    _officeLat ??= 42.8735;
-    _officeLng ??= 74.5752;
     final distance = Geolocator.distanceBetween(
-      latitude, longitude, _officeLat!, _officeLng!,
+      latitude, longitude, _officeLat, _officeLng,
     );
-    return distance <= 50.0;
-  }
-
-  double? _officeLat;
-  double? _officeLng;
-  Future<void>? _loadingOffice;
-
-  Future<void> _loadOffice() async {
-    _loadingOffice ??= _firestore
-        .collection('config')
-        .doc('office')
-        .get()
-        .then((doc) {
-      if (doc.exists) {
-        final data = doc.data()!;
-        _officeLat = (data['latitude'] as num?)?.toDouble() ?? 42.8735;
-        _officeLng = (data['longitude'] as num?)?.toDouble() ?? 74.5752;
-      } else {
-        _officeLat = 42.8735;
-        _officeLng = 74.5752;
-      }
-    }).catchError((_) {
-      _officeLat = 42.8735;
-      _officeLng = 74.5752;
-    });
-    await _loadingOffice!;
+    return distance <= _officeRadiusMeters;
   }
 
   static String _dateKey(DateTime date) {

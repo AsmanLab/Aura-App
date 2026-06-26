@@ -49,7 +49,11 @@ class PushService {
     // Persist a rotated token for whoever is signed in.
     _fcm.onTokenRefresh.listen((t) {
       final uid = _auth.currentUser?.uid;
-      if (uid != null) _save(uid, t);
+      if (uid != null) {
+        _save(uid, t).catchError((Object e) {
+          debugPrint('PushService: token refresh save failed: $e');
+        });
+      }
     });
 
     // Cold start with a restored session: the user doc already exists, so
