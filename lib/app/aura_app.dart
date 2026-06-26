@@ -9,6 +9,7 @@ import 'package:aura_app/core/router/navigation.dart';
 import 'package:aura_app/core/settings/locale_cubit.dart';
 import 'package:aura_app/core/settings/theme_cubit.dart';
 import 'package:aura_app/features/auth/domain/repositories/auth_repository.dart';
+import 'package:aura_app/core/services/app_update_service.dart';
 import 'package:aura_app/features/attendance/presentation/bloc/attendance_cubit.dart';
 import 'package:aura_app/features/attendance/domain/repositories/attendance_repository.dart';
 import 'package:aura_app/features/profile/presentation/pages/style_gallery_screen.dart';
@@ -38,8 +39,19 @@ class _AuraAppState extends ConsumerState<AuraApp> {
 
   @override
   Widget build(BuildContext context) {
-    ref.listen<AsyncValue<bool>>(authStateProvider, (_, next) {
+    ref.listen<AsyncValue<bool>>(authStateProvider, (prev, next) {
       _auth.value = next;
+      // Trigger update check once on sign-in (cold start only).
+      next.whenData((isAuthed) {
+        final wasAuthed = prev?.value ?? false;
+        if (isAuthed && !wasAuthed) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (context.mounted) {
+              sl<AppUpdateService>().checkAndPrompt(context);
+            }
+          });
+        }
+      });
     });
 
     return MultiBlocProvider(

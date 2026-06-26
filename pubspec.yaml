@@ -41,6 +41,9 @@ dependencies:
   # GeneratedPluginRegistrant.java → `package ... does not exist` at javac.
   flutter_native_splash: ^2.4.7
   flutter_timezone: ^5.1.0
+  firebase_remote_config: ^5.5.0
+  package_info_plus: ^10.2.0
+  url_launcher: ^6.3.2
 
 dev_dependencies:
   flutter_test:

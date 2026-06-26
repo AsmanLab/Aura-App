@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:firebase_remote_config/firebase_remote_config.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:get_it/get_it.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -35,6 +36,7 @@ import 'package:aura_app/core/domain/repositories/people_repository.dart';
 import 'package:aura_app/core/domain/repositories/settings_repository.dart';
 import '../../features/attendance/data/repositories/attendance_repository_impl.dart';
 import '../../features/attendance/domain/repositories/attendance_repository.dart';
+import '../services/app_update_service.dart';
 import '../services/user_profile_service.dart';
 
 /// Service locator. Bind domain interfaces to seed-backed implementations here;
@@ -108,6 +110,13 @@ Future<void> setupDi() async {
   sl.registerLazySingleton<UserProfileService>(
     () => UserProfileService(sl(), sl()),
   );
+
+  // In-app update check via Firebase Remote Config.
+  final remoteConfig = FirebaseRemoteConfig.instance;
+  sl.registerLazySingleton<AppUpdateService>(
+    () => AppUpdateService(remoteConfig, sl()),
+  );
+  await sl<AppUpdateService>().init();
 
   // Repositories (seed-backed).
   sl.registerLazySingleton<PeopleRepository>(() => SeedPeopleRepository());
