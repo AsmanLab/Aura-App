@@ -8,6 +8,9 @@ import 'package:aura_app/core/router/app_router.dart';
 import 'package:aura_app/core/router/navigation.dart';
 import 'package:aura_app/core/settings/locale_cubit.dart';
 import 'package:aura_app/core/settings/theme_cubit.dart';
+import 'package:aura_app/features/auth/domain/repositories/auth_repository.dart';
+import 'package:aura_app/features/attendance/presentation/bloc/attendance_cubit.dart';
+import 'package:aura_app/features/attendance/domain/repositories/attendance_repository.dart';
 import 'package:aura_app/features/profile/presentation/pages/style_gallery_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -23,11 +26,7 @@ class AuraApp extends ConsumerStatefulWidget {
 }
 
 class _AuraAppState extends ConsumerState<AuraApp> {
-  // Latest auth state, exposed to the router as a refresh trigger. The router
-  // is built ONCE; this notifier re-runs its redirect on auth changes instead
-  // of recreating the router (which deactivates widgets mid-flight).
-  late final ValueNotifier<AsyncValue<bool>> _auth =
-      ValueNotifier(ref.read(authStateProvider));
+  late final ValueNotifier<AsyncValue<bool>> _auth = ValueNotifier(ref.read(authStateProvider));
   late final GoRouter _router = _createRouter();
 
   @override
@@ -39,7 +38,6 @@ class _AuraAppState extends ConsumerState<AuraApp> {
 
   @override
   Widget build(BuildContext context) {
-    // Push auth changes into the notifier → router redirect re-runs.
     ref.listen<AsyncValue<bool>>(authStateProvider, (_, next) {
       _auth.value = next;
     });
@@ -48,6 +46,12 @@ class _AuraAppState extends ConsumerState<AuraApp> {
       providers: [
         BlocProvider.value(value: sl<ThemeCubit>()),
         BlocProvider.value(value: sl<LocaleCubit>()),
+        BlocProvider(
+          create: (_) => AttendanceCubit(
+            sl<AttendanceRepository>(),
+            sl<AuthRepository>().currentUser?.id ?? '',
+          ),
+        ),
       ],
       child: Builder(
         builder: (context) {
@@ -72,19 +76,15 @@ class _AuraAppState extends ConsumerState<AuraApp> {
   GoRouter _createRouter() {
     return GoRouter(
       navigatorKey: rootNavigatorKey,
-      // Boot to '/splash' while the persisted session is validated; redirect
-      // then routes to the app ('/aura/home') or '/login'.
       initialLocation: '/splash',
       refreshListenable: _auth,
       redirect: (context, state) {
         final authState = _auth.value;
         final path = state.uri.toString();
-        // Auth-free routes. The app ('/aura/*') now requires a session.
         final isPublic = path == '/login' ||
             path == '/splash' ||
             path == '/style-gallery';
         return authState.when(
-          // Auth resolved: leave the splash for the right destination.
           data: (isAuthenticated) {
             if (path == '/splash') {
               return isAuthenticated ? '/aura/home' : '/login';
@@ -97,7 +97,6 @@ class _AuraAppState extends ConsumerState<AuraApp> {
             }
             return null;
           },
-          // Still resolving: hold on the splash.
           loading: () => path == '/splash' ? null : '/splash',
           error: (_, __) => isPublic ? null : '/login',
         );

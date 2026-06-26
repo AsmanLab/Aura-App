@@ -4,6 +4,10 @@ import 'package:go_router/go_router.dart';
 
 import '../../features/award/presentation/bloc/award_cubit.dart';
 import '../../features/award/presentation/pages/award_page.dart';
+import '../../features/attendance/domain/repositories/attendance_repository.dart';
+import '../../features/attendance/presentation/bloc/attendance_cubit.dart';
+import '../../features/attendance/presentation/pages/attendance_page.dart';
+import '../../features/auth/domain/repositories/auth_repository.dart';
 import '../../features/duty/presentation/bloc/duty_cubit.dart';
 import '../../features/duty/presentation/pages/duty_page.dart';
 import '../../features/history/presentation/pages/history_page.dart';
@@ -138,6 +142,10 @@ List<RouteBase> auraRoutes() => [
   GoRoute(
     path: '/aura/settings',
     pageBuilder: (context, state) => _slideRight(state, const SettingsPage()),
+  ),
+  GoRoute(
+    path: '/aura/attendance',
+    builder: (context, state) => const AttendancePage(),
   ),
 ];
 

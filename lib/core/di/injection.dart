@@ -33,6 +33,8 @@ import 'package:aura_app/core/domain/repositories/duty_repository.dart';
 import 'package:aura_app/core/domain/repositories/knowledge_repository.dart';
 import 'package:aura_app/core/domain/repositories/people_repository.dart';
 import 'package:aura_app/core/domain/repositories/settings_repository.dart';
+import '../../features/attendance/data/repositories/attendance_repository_impl.dart';
+import '../../features/attendance/domain/repositories/attendance_repository.dart';
 
 /// Service locator. Bind domain interfaces to seed-backed implementations here;
 /// swap to Firestore-backed impls without touching presentation.
@@ -94,6 +96,11 @@ Future<void> setupDi() async {
   );
   sl.registerLazySingleton<ProfileRepository>(
     () => ProfileRepositoryImpl(sl()),
+  );
+
+  // Attendance
+  sl.registerLazySingleton<AttendanceRepository>(
+    () => AttendanceRepositoryImpl(),
   );
 
   // Repositories (seed-backed).

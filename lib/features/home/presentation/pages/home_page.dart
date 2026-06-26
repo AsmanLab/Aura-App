@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:geolocator/geolocator.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
@@ -8,89 +8,20 @@ import 'package:aura_app/core/models/attendance_transaction.dart';
 import 'package:aura_app/core/models/aura_transaction.dart';
 import 'package:aura_app/core/models/enums.dart';
 import 'package:aura_app/core/models/user_model.dart';
-import 'package:aura_app/core/services/attendance_service.dart';
 import 'package:aura_app/core/theme/app_colors.dart';
 import 'package:aura_app/core/theme/app_spacing.dart';
 import 'package:aura_app/core/theme/app_typography.dart';
 import 'package:aura_app/core/widgets/app_card.dart';
-import 'package:aura_app/core/widgets/attendance_calendar.dart';
 import 'package:aura_app/core/widgets/aura_transaction_tile.dart';
-import 'package:aura_app/core/widgets/avatar.dart';
 import 'package:aura_app/core/widgets/hearts_status.dart';
 import 'package:aura_app/core/widgets/section_label.dart';
 import 'package:aura_app/core/widgets/skeleton.dart';
+import 'package:aura_app/features/attendance/presentation/bloc/attendance_cubit.dart';
 import 'package:aura_app/features/auth/domain/repositories/auth_repository.dart';
 import 'package:aura_app/features/profile/domain/repositories/profile_repository.dart';
 
-class HomePage extends StatefulWidget {
+class HomePage extends StatelessWidget {
   const HomePage({super.key});
-
-  @override
-  State<HomePage> createState() => _HomePageState();
-}
-
-class _HomePageState extends State<HomePage> {
-  final AttendanceService _attendanceService = AttendanceService();
-  bool _isTakingAttendance = false;
-
-  Future<void> _takeAttendance() async {
-    if (_isTakingAttendance) return;
-
-    setState(() {
-      _isTakingAttendance = true;
-    });
-
-    try {
-      if (!await _checkLocationPermission()) {
-        throw Exception('Разрешение на определение местоположения отклонено');
-      }
-
-      final position = await Geolocator.getCurrentPosition(
-        locationSettings: const LocationSettings(
-          accuracy: LocationAccuracy.high,
-        ),
-      );
-
-      await _attendanceService.markAttendance(
-        latitude: position.latitude,
-        longitude: position.longitude,
-      );
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Посещаемость успешно сохранена!')),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Ошибка: ${e.toString()}')));
-      }
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isTakingAttendance = false;
-        });
-      }
-    }
-  }
-
-  Future<bool> _checkLocationPermission() async {
-    final serviceEnabled = await Geolocator.isLocationServiceEnabled();
-    if (!serviceEnabled) return false;
-
-    var permission = await Geolocator.checkPermission();
-    if (permission == LocationPermission.denied) {
-      permission = await Geolocator.requestPermission();
-    }
-    return permission != LocationPermission.denied &&
-        permission != LocationPermission.deniedForever;
-  }
-
-  bool _canTakeAttendance() {
-    return _attendanceService.isWithinTimeWindow();
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -109,96 +40,93 @@ class _HomePageState extends State<HomePage> {
           onRefresh: () async {
             if (uid != null) await sl<ProfileRepository>().getHistory(uid);
           },
-          child: StreamBuilder<UserModel?>(
-            stream: uid == null
-                ? const Stream.empty()
-                : sl<ProfileRepository>().watchUser(uid),
-            builder: (context, userSnap) {
-              final user = userSnap.data;
-              final isIntern = user?.role == Role.intern;
-              return StreamBuilder<List<AuraTransaction>>(
-                stream: uid == null
-                    ? const Stream.empty()
-                    : sl<ProfileRepository>().watchHistory(uid),
-                builder: (context, snap) {
-                  final loading =
-                      snap.connectionState == ConnectionState.waiting;
-                  final history = snap.data ?? const <AuraTransaction>[];
-                  return ListView(
-                    physics: const AlwaysScrollableScrollPhysics(),
-                    padding: const EdgeInsets.fromLTRB(
-                      AppSpacing.screenPad,
-                      AppSpacing.s4,
-                      AppSpacing.screenPad,
-                      120,
-                    ),
-                    children: [
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            DateFormat('EEEE, MMM d').format(DateTime.now()),
-                            style: AppType.sm(c),
-                          ),
-                          Text('Hi, $firstName', style: AppType.h1(c)),
-                        ],
-                      ),
-                      if (user != null && isIntern) ...[
-                        const SizedBox(height: AppSpacing.s4),
-                        HeartsStatus(count: user.hearts),
-                      ],
-                      SectionLabel('Attendance'),
-                      StreamBuilder<List<AttendanceRecord>>(
-                        stream: uid == null
-                            ? const Stream.empty()
-                            : _attendanceService.watchAttendance(uid),
-                        builder: (context, attendanceSnap) {
-                          final records = attendanceSnap.data ?? [];
-                          return AttendanceCalendar(
-                            records: records,
-                            onCheckIn: _takeAttendance,
-                            canCheckIn: _canTakeAttendance(),
-                            isCheckingIn: _isTakingAttendance,
-                          );
-                        },
-                      ),
-                      if (user != null && user.canAward) ...[
-                        SectionLabel('Today attendance'),
-                        _AttendanceOverview(service: _attendanceService),
-                      ],
-                      SectionLabel(
-                        'My Aura',
-                        trailing: GestureDetector(
-                          onTap: () => context.push('/aura/history'),
-                          child: Text('See all', style: AppType.sm(c)),
-                        ),
-                      ),
-                      if (loading)
-                        const ListSkeleton(count: 3)
-                      else if (history.isEmpty)
-                        AppCard(
-                          child: Text(
-                            'No Aura yet.',
-                            style: AppType.bodyDim(c),
-                          ),
-                        )
-                      else
-                        AppCard.flush(
-                          child: Column(
-                            children: [
-                              for (var i = 0; i < 3 && i < history.length; i++)
-                                AuraTransactionTile(
-                                  txn: history[i],
-                                  divider: i != 2 && i != history.length - 1,
-                                ),
-                            ],
-                          ),
-                        ),
-                    ],
-                  );
-                },
+          child: BlocListener<AttendanceCubit, AttendanceState>(
+            listenWhen: (prev, curr) =>
+                prev.error != curr.error && curr.error != null,
+            listener: (context, state) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text(state.error!)),
               );
             },
+            child: StreamBuilder<UserModel?>(
+              stream: uid == null
+                  ? const Stream.empty()
+                  : sl<ProfileRepository>().watchUser(uid),
+              builder: (context, userSnap) {
+                final user = userSnap.data;
+                final isIntern = user?.role == Role.intern;
+                return StreamBuilder<List<AuraTransaction>>(
+                  stream: uid == null
+                      ? const Stream.empty()
+                      : sl<ProfileRepository>().watchHistory(uid),
+                  builder: (context, snap) {
+                    final loading =
+                        snap.connectionState == ConnectionState.waiting;
+                    final history = snap.data ?? const <AuraTransaction>[];
+                    return ListView(
+                      physics: const AlwaysScrollableScrollPhysics(),
+                      padding: const EdgeInsets.fromLTRB(
+                        AppSpacing.screenPad,
+                        AppSpacing.s4,
+                        AppSpacing.screenPad,
+                        120,
+                      ),
+                      children: [
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              DateFormat('EEEE, MMM d').format(DateTime.now()),
+                              style: AppType.sm(c),
+                            ),
+                            Text('Hi, $firstName', style: AppType.h1(c)),
+                          ],
+                        ),
+                        if (user != null) ...[
+                          const SizedBox(height: AppSpacing.s4),
+                          _AttendanceHomeCard(),
+                          if (isIntern) ...[
+                            const SizedBox(height: AppSpacing.s4),
+                            HeartsStatus(count: user.hearts),
+                          ],
+                        ],
+                        SectionLabel(
+                          'My Aura',
+                          trailing: GestureDetector(
+                            onTap: () => context.push('/aura/history'),
+                            child: Text('See all', style: AppType.sm(c)),
+                          ),
+                        ),
+                        if (loading)
+                          const ListSkeleton(count: 3)
+                        else if (history.isEmpty)
+                          AppCard(
+                            child: Text(
+                              'No Aura yet.',
+                              style: AppType.bodyDim(c),
+                            ),
+                          )
+                        else
+                          AppCard.flush(
+                            child: Column(
+                              children: [
+                                for (var i = 0;
+                                    i < 3 && i < history.length;
+                                    i++)
+                                  AuraTransactionTile(
+                                    txn: history[i],
+                                    divider:
+                                        i != 2 && i != history.length - 1,
+                                  ),
+                              ],
+                            ),
+                          ),
+                      ],
+                    );
+                  },
+                );
+              },
+            ),
           ),
         ),
       ),
@@ -206,124 +134,131 @@ class _HomePageState extends State<HomePage> {
   }
 }
 
-class _AttendanceOverview extends StatelessWidget {
-  final AttendanceService service;
-
-  const _AttendanceOverview({required this.service});
+class _AttendanceHomeCard extends StatelessWidget {
+  const _AttendanceHomeCard();
 
   @override
   Widget build(BuildContext context) {
     final c = Theme.of(context).extension<AppColors>()!;
-
-    return StreamBuilder<List<AttendanceStatus>>(
-      stream: service.watchTodayInternStatuses(),
-      builder: (context, snapshot) {
-        final statuses = snapshot.data ?? const <AttendanceStatus>[];
-
-        if (snapshot.connectionState == ConnectionState.waiting &&
-            statuses.isEmpty) {
-          return const ListSkeleton(count: 3);
-        }
-
-        if (statuses.isEmpty) {
+    return BlocBuilder<AttendanceCubit, AttendanceState>(
+      builder: (context, state) {
+        if (state.loading) {
           return AppCard(
-            child: Text('No interns found.', style: AppType.bodyDim(c)),
+            child: Row(
+              children: [
+                Container(
+                  width: 22,
+                  height: 22,
+                  decoration: BoxDecoration(
+                    color: c.border,
+                    borderRadius: BorderRadius.circular(11),
+                  ),
+                ),
+                const SizedBox(width: AppSpacing.s3),
+                Expanded(
+                  child: Container(
+                    height: 16,
+                    decoration: BoxDecoration(
+                      color: c.border,
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                  ),
+                ),
+              ],
+            ),
           );
         }
 
-        final present = statuses.where((s) => s.isPresent).length;
+        final now = DateTime.now().toUtc();
+        final todayKey =
+            '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
+        final todayRecord = state.myRecords
+            .cast<AttendanceRecord?>()
+            .firstWhere((r) => r?.dateKey == todayKey, orElse: () => null);
 
-        return AppCard.flush(
-          child: Column(
+        return AppCard(
+          onTap: () => context.push('/aura/attendance'),
+          child: Row(
             children: [
-              Padding(
-                padding: const EdgeInsets.all(AppSpacing.s4),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        '$present/${statuses.length} arrived today',
-                        style: AppType.bodyStrong(c),
-                      ),
-                    ),
-                    Text(
-                      DateFormat('MMM d').format(DateTime.now()),
-                      style: AppType.sm(c),
-                    ),
-                  ],
+              Icon(
+                Icons.event_available,
+                color: todayRecord != null ? c.success : c.accentSolid,
+                size: 22,
+              ),
+              const SizedBox(width: AppSpacing.s3),
+              Expanded(
+                child: Text(
+                  "Today's Attendance",
+                  style: AppType.bodyStrong(c),
                 ),
               ),
-              for (var i = 0; i < statuses.length; i++)
-                _AttendanceStatusRow(
-                  status: statuses[i],
-                  divider: i != statuses.length - 1,
+              if (state.canCheckIn)
+                ElevatedButton(
+                  onPressed: state.isCheckingIn
+                      ? null
+                      : () => context.read<AttendanceCubit>().checkIn(),
+                  child: state.isCheckingIn
+                      ? const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
+                        )
+                      : const Text('Check In'),
                 ),
+              if (state.canCheckOut)
+                OutlinedButton(
+                  onPressed: state.isCheckingOut
+                      ? null
+                      : () => context
+                          .read<AttendanceCubit>()
+                          .checkOut('Checked out'),
+                  child: state.isCheckingOut
+                      ? const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Text('Check Out'),
+                ),
+              if (!state.canCheckIn &&
+                  !state.canCheckOut &&
+                  todayRecord != null)
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: c.success.withValues(alpha: 0.14),
+                    borderRadius: BorderRadius.circular(AppSpacing.rChip),
+                  ),
+                  child: Text(
+                    'Done / break',
+                    style: AppType.sm(c).copyWith(color: c.success),
+                  ),
+                ),
+              if (!state.canCheckIn &&
+                  !state.canCheckOut &&
+                  todayRecord == null)
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: c.textDim.withValues(alpha: 0.14),
+                    borderRadius: BorderRadius.circular(AppSpacing.rChip),
+                  ),
+                  child: Text(
+                    'Absent',
+                    style: AppType.sm(c).copyWith(color: c.textDim),
+                  ),
+                ),
+              const SizedBox(width: AppSpacing.s1),
+              Icon(Icons.chevron_right, color: c.textFaint, size: 20),
             ],
           ),
         );
       },
-    );
-  }
-}
-
-class _AttendanceStatusRow extends StatelessWidget {
-  final AttendanceStatus status;
-  final bool divider;
-
-  const _AttendanceStatusRow({required this.status, required this.divider});
-
-  @override
-  Widget build(BuildContext context) {
-    final c = Theme.of(context).extension<AppColors>()!;
-    final record = status.record;
-    final present = record != null;
-
-    return Container(
-      padding: const EdgeInsets.all(AppSpacing.s4),
-      decoration: BoxDecoration(
-        border: divider ? Border(bottom: BorderSide(color: c.border)) : null,
-      ),
-      child: Row(
-        children: [
-          Avatar(
-            id: status.user.id,
-            name: status.user.displayName,
-            photoUrl: status.user.photoURL,
-            size: 36,
-          ),
-          const SizedBox(width: AppSpacing.s3),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(status.user.displayName, style: AppType.h3(c)),
-                Text(
-                  present
-                      ? 'Arrived at ${DateFormat('HH:mm').format(record.timestamp)}'
-                      : 'Not arrived yet',
-                  style: AppType.sm(c),
-                ),
-              ],
-            ),
-          ),
-          Container(
-            padding: const EdgeInsets.symmetric(
-              horizontal: AppSpacing.s3,
-              vertical: AppSpacing.s2,
-            ),
-            decoration: BoxDecoration(
-              color: present ? c.success.withValues(alpha: 0.14) : c.surface3,
-              borderRadius: BorderRadius.circular(AppSpacing.rChip),
-            ),
-            child: Text(
-              present ? 'Пришёл' : 'Не пришёл',
-              style: AppType.sm(
-                c,
-              ).copyWith(color: present ? c.success : c.textDim),
-            ),
-          ),
-        ],
-      ),
     );
   }
 }

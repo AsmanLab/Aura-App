@@ -10,19 +10,16 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-void main() async {
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
-  // FCM background/terminated handler (must be registered before runApp).
   FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
 
   await setupDi();
 
-  // Render the UI first — never let push setup block/crash the launch.
   runApp(const ProviderScope(child: AuraApp()));
 
-  // Permission, listeners, token sync — fire-and-forget, errors swallowed.
   unawaited(_initPush());
   unawaited(_initAttendanceNotifications());
 }
