@@ -43,7 +43,7 @@ class LeaderboardPage extends StatelessWidget {
                     AppSpacing.screenPad,
                     AppSpacing.s4,
                     AppSpacing.screenPad,
-                    140,
+                    200,
                   ),
                   children: [
                     Text('Leaderboard', style: AppType.h1(c)),
