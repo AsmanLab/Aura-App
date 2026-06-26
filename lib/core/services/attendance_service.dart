@@ -72,12 +72,14 @@ class AttendanceService {
     return _firestore
         .collection('attendance')
         .where('userId', isEqualTo: userId)
-        .orderBy('timestamp', descending: true)
-        .limit(100)
         .snapshots()
-        .map((snapshot) => snapshot.docs
-            .map((doc) => AttendanceRecord.fromMap(doc.data(), doc.id))
-            .toList());
+        .map((snapshot) {
+          final records = snapshot.docs
+              .map((doc) => AttendanceRecord.fromMap(doc.data(), doc.id))
+              .toList();
+          records.sort((a, b) => b.timestamp.compareTo(a.timestamp));
+          return records;
+        });
   }
 
   bool isWithinTimeWindow() {
