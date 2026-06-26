@@ -118,5 +118,19 @@ service cloud.firestore {
     match /roulette_history/{userId}/spins/{spin} {
       allow read, create: if isSignedIn() && userId == uid();
     }
+
+    match /attendance/{recordId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn()
+        && request.auth.uid == request.resource.data.userId
+        && request.resource.data.timestamp is timestamp;
+      allow update: if isSignedIn()
+        && request.auth.uid == resource.data.userId
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'checkOutTimestamp', 'checkOutNote',
+          'lunchStart', 'lunchEnd', 'lunchNote'
+        ]);
+      allow delete: if false;
+    }
   }
 }
