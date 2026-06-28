@@ -225,7 +225,7 @@ class _AttendancePageState extends State<AttendancePage> {
             ),
           ],
           if (!state.canCheckIn && !state.canCheckOut && !state.canStartLunch && !state.canEndLunch)
-            Text('Доступно с 13:00 до 15:00 (Пн-Пт)', style: AppType.sm(c)),
+            Text('Доступно с 11:00 до 13:00 (Пн-Пт)', style: AppType.sm(c)),
         ],
       ),
     );

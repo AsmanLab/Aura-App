@@ -21,7 +21,7 @@ class AttendanceService {
   Future<void> markAttendance({required double latitude, required double longitude}) async {
     final currentUser = _auth.currentUser;
     if (currentUser == null) throw Exception('User not authenticated');
-    if (!isWithinTimeWindow()) throw Exception('Attendance is available Monday-Friday, 13:00-15:00');
+    if (!isWithinTimeWindow()) throw Exception('Attendance is available Monday-Friday, 11:00-13:00');
     if (!await _isWithinClassLocation(latitude, longitude)) throw Exception('You are outside the office location');
     final now = _now;
     final recordId = '${currentUser.uid}_${attendanceDateKey(now)}';
@@ -78,11 +78,11 @@ class AttendanceService {
   }
 
   bool isWithinTimeWindow() {
-    final now = _now;
+    final now = DateTime.now().toLocal();
     final weekday = now.weekday;
     if (weekday < 1 || weekday > 5) return false;
     final timeInMinutes = now.hour * 60 + now.minute;
-    return timeInMinutes >= 7 * 60 && timeInMinutes <= 9 * 60;
+    return timeInMinutes >= 11 * 60 && timeInMinutes <= 13 * 60;
   }
 
   static String attendanceDateKey(DateTime date) {
