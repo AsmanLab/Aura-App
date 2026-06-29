@@ -19,6 +19,12 @@ class AttendancePage extends StatefulWidget {
 }
 
 class _AttendancePageState extends State<AttendancePage> {
+  @override
+  void initState() {
+    super.initState();
+    // Lazy-start the all-users stream only while this page is open.
+    context.read<AttendanceCubit>().startTodayMonitoring();
+  }
   void _showLunchDialog(BuildContext context, {required bool isStart}) {
     final controller = TextEditingController();
     showDialog(

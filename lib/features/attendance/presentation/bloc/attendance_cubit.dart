@@ -107,7 +107,13 @@ class AttendanceCubit extends Cubit<AttendanceState> {
       }),
     );
     emit(state.copyWith(loading: false));
+  }
 
+  /// Call from AttendancePage.initState — starts the all-users stream only
+  /// while the page is visible, not for the entire app session.
+  void startTodayMonitoring() {
+    if (_todayMonitoringStarted) return;
+    _todayMonitoringStarted = true;
     _subscriptions.add(
       _repo.watchTodayStatuses().listen((statuses) {
         if (!isClosed) emit(state.copyWith(todayStatuses: statuses));
@@ -116,6 +122,8 @@ class AttendanceCubit extends Cubit<AttendanceState> {
       }),
     );
   }
+
+  bool _todayMonitoringStarted = false;
 
   Future<void> checkIn() async {
     if (state.isCheckingIn || !state.canCheckIn) return;

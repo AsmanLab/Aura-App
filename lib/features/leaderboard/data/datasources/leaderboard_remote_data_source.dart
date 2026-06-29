@@ -19,6 +19,7 @@ class LeaderboardRemoteDataSourceImpl implements LeaderboardRemoteDataSource {
   Stream<List<UserModel>> watchUsers() {
     return _db
         .collection('users')
+        .limit(200)
         .snapshots()
         .map(
           (snap) =>
@@ -34,6 +35,7 @@ class LeaderboardRemoteDataSourceImpl implements LeaderboardRemoteDataSource {
     return _db
         .collection('aura_transactions')
         .where('timestamp', isGreaterThanOrEqualTo: Timestamp.fromDate(start))
+        .limit(1000)
         .snapshots()
         .map((snap) {
           final totals = <String, int>{};

@@ -28,7 +28,7 @@ class AwardRemoteDataSourceImpl implements AwardRemoteDataSource {
 
   @override
   Future<List<UserModel>> getAllUsers() async {
-    final snap = await _db.collection('users').get();
+    final snap = await _db.collection('users').limit(200).get();
     final users =
         snap.docs.map((d) => UserModel.fromMap(d.data(), d.id)).toList();
     users.sort((a, b) => a.displayName.compareTo(b.displayName));
