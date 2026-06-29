@@ -52,7 +52,7 @@ class AttendanceNotificationService {
         _channelId,
         _channelName,
         channelDescription:
-            'Daily reminder to mark attendance Monday–Friday at 13:00',
+            'Daily reminder to mark attendance Monday–Friday at 11:00',
         importance: Importance.high,
         priority: Priority.high,
       ),
@@ -76,7 +76,7 @@ class AttendanceNotificationService {
     }
   }
 
-  /// Returns the next occurrence of 13:00 local time on [weekday] (Mon = 1).
+  /// Returns the next occurrence of 11:00 local time on [weekday] (Mon = 1).
   tz.TZDateTime _next11amOn(int weekday) {
     final now = tz.TZDateTime.now(tz.local);
     var candidate = tz.TZDateTime(
@@ -84,7 +84,7 @@ class AttendanceNotificationService {
       now.year,
       now.month,
       now.day,
-      13, // 1 PM — matches the attendance window (13:00–15:00)
+      11, // 11:00 AM — matches the attendance window (11:00–13:00)
     );
     while (candidate.weekday != weekday || !candidate.isAfter(now)) {
       candidate = candidate.add(const Duration(days: 1));

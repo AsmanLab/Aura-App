@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 
 import 'package:aura_app/core/models/attendance_transaction.dart';
 import 'package:aura_app/core/theme/app_colors.dart';
+import 'package:aura_app/core/theme/app_gradients.dart';
 import 'package:aura_app/core/theme/app_spacing.dart';
 import 'package:aura_app/core/theme/app_typography.dart';
 import 'package:aura_app/core/widgets/app_card.dart';
@@ -131,42 +132,41 @@ class _AttendancePageState extends State<AttendancePage> {
         children: [
           Text('Calendar', style: AppType.h3(c)),
           const SizedBox(height: AppSpacing.s3),
-          SizedBox(
-            height: 200,
-            child: GridView.builder(
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 7,
-                childAspectRatio: 1,
-              ),
-              itemCount: daysInMonth,
-              itemBuilder: (context, index) {
-                final day = firstOfMonth.add(Duration(days: index));
-                final hasRecord = records.any((r) => 
-                  r.dateKey == DateFormat('yyyy-MM-dd').format(DateTime(day.year, day.month, day.day)));
-                return GestureDetector(
-                  onTap: hasRecord ? () => _showDayDetails(context, day, records) : null,
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: hasRecord ? c.success.withValues(alpha: 0.2) : null,
-                      border: Border.all(
-                        color: DateUtils.isSameDay(day, now) ? c.accentSolid : c.border,
-                        width: DateUtils.isSameDay(day, now) ? 2 : 1,
-                      ),
-                      borderRadius: BorderRadius.circular(4),
+          GridView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 7,
+              childAspectRatio: 1,
+            ),
+            itemCount: daysInMonth,
+            itemBuilder: (context, index) {
+              final day = firstOfMonth.add(Duration(days: index));
+              final hasRecord = records.any((r) =>
+                r.dateKey == DateFormat('yyyy-MM-dd').format(DateTime(day.year, day.month, day.day)));
+              return GestureDetector(
+                onTap: hasRecord ? () => _showDayDetails(context, day, records) : null,
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: hasRecord ? c.success.withValues(alpha: 0.2) : null,
+                    border: Border.all(
+                      color: DateUtils.isSameDay(day, now) ? c.accentSolid : c.border,
+                      width: DateUtils.isSameDay(day, now) ? 2 : 1,
                     ),
-                    child: Center(
-                      child: Text(
-                        '${index + 1}',
-                        style: AppType.sm(c).copyWith(
-                          color: hasRecord ? c.success : c.text,
-                          fontWeight: FontWeight.bold,
-                        ),
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: Center(
+                    child: Text(
+                      '${index + 1}',
+                      style: AppType.sm(c).copyWith(
+                        color: hasRecord ? c.success : c.text,
+                        fontWeight: FontWeight.bold,
                       ),
                     ),
                   ),
-                );
-              },
-            ),
+                ),
+              );
+            },
           ),
         ],
       ),
@@ -176,63 +176,102 @@ class _AttendancePageState extends State<AttendancePage> {
   Widget _buildActions(AppColors c, BuildContext context, AttendanceState state) {
     final todayKey = DateFormat('yyyy-MM-dd').format(DateTime.now().toUtc());
     final myTodayRecord = state.myRecords.cast<AttendanceRecord?>().firstWhere(
-      (r) => r?.dateKey == todayKey, 
-      orElse: () => null
+      (r) => r?.dateKey == todayKey,
+      orElse: () => null,
     );
-    
+
+    // Fully done for the day (checked out).
     if (myTodayRecord != null && myTodayRecord.checkOutNote != null) {
       return AppCard(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        child: Row(
           children: [
-            Text('Work Time', style: AppType.h3(c)),
-            const SizedBox(height: AppSpacing.s3),
-            Text('Пришёл: ${DateFormat('HH:mm').format(myTodayRecord.timestamp.toLocal())}', 
-                style: AppType.bodyStrong(c)),
-            Text('Ушёл: ${DateFormat('HH:mm').format(myTodayRecord.timestamp.toLocal())}', 
-                style: AppType.bodyStrong(c)),
+            Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                color: c.success.withValues(alpha: 0.14),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(Icons.check_rounded, color: c.success, size: 20),
+            ),
+            const SizedBox(width: AppSpacing.s3),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Attendance marked', style: AppType.bodyStrong(c)),
+                  Text(
+                    'Arrived ${DateFormat('HH:mm').format(myTodayRecord.timestamp.toLocal())}',
+                    style: AppType.sm(c),
+                  ),
+                ],
+              ),
+            ),
           ],
         ),
       );
     }
-    
+
     return AppCard(
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          // Check-in — gradient primary button.
           if (state.canCheckIn)
-            ElevatedButton(
-              onPressed: state.isCheckingIn ? null : () => context.read<AttendanceCubit>().checkIn(),
-              child: state.isCheckingIn 
-                ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
-                : const Text('Отметиться о прибытии'),
+            _AttendanceButton(
+              onTap: state.isCheckingIn
+                  ? null
+                  : () => context.read<AttendanceCubit>().checkIn(),
+              loading: state.isCheckingIn,
+              icon: Icons.login_rounded,
+              label: 'Mark attendance',
+              gradient: true,
+              c: c,
             ),
-          if (state.canStartLunch) ...[
-            const SizedBox(height: AppSpacing.s2),
-            ElevatedButton.icon(
-              onPressed: () => _showLunchDialog(context, isStart: true),
-              icon: const Text('🍽️'),
-              label: const Text('Перерыв на обед'),
+
+          // Already checked in — status row + follow-up actions.
+          if (myTodayRecord != null && !state.canCheckIn) ...[
+            Row(
+              children: [
+                Icon(Icons.check_circle_rounded, color: c.success, size: 18),
+                const SizedBox(width: AppSpacing.s2),
+                Text(
+                  'Arrived ${DateFormat('HH:mm').format(myTodayRecord.timestamp.toLocal())}',
+                  style: AppType.bodyStrong(c).copyWith(color: c.success),
+                ),
+              ],
             ),
+            if (state.canStartLunch) ...[
+              const SizedBox(height: AppSpacing.s3),
+              _AttendanceButton(
+                onTap: () => _showLunchDialog(context, isStart: true),
+                icon: Icons.free_breakfast_rounded,
+                label: 'Start lunch break',
+                c: c,
+              ),
+            ],
+            if (state.canEndLunch) ...[
+              const SizedBox(height: AppSpacing.s3),
+              _AttendanceButton(
+                onTap: () => _showLunchDialog(context, isStart: false),
+                icon: Icons.keyboard_return_rounded,
+                label: 'Back from lunch',
+                c: c,
+              ),
+            ],
+            if (state.canCheckOut) ...[
+              const SizedBox(height: AppSpacing.s3),
+              _AttendanceButton(
+                onTap: state.isCheckingOut
+                    ? null
+                    : () => context.read<AttendanceCubit>().checkOut('Checked out'),
+                loading: state.isCheckingOut,
+                icon: Icons.logout_rounded,
+                label: 'Check out',
+                c: c,
+              ),
+            ],
           ],
-          if (state.canEndLunch) ...[
-            const SizedBox(height: AppSpacing.s2),
-            ElevatedButton.icon(
-              onPressed: () => _showLunchDialog(context, isStart: false),
-              icon: const Text('🔙'),
-              label: const Text('Вернулся с обеда'),
-            ),
-          ],
-          if (state.canCheckOut) ...[
-            const SizedBox(height: AppSpacing.s2),
-            OutlinedButton(
-              onPressed: state.isCheckingOut ? null : () => context.read<AttendanceCubit>().checkOut('Checked out'),
-              child: state.isCheckingOut
-                ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
-                : const Text('Уйти'),
-            ),
-          ],
-          if (!state.canCheckIn && !state.canCheckOut && !state.canStartLunch && !state.canEndLunch)
-            Text('Доступно с 11:00 до 13:00 (Пн-Пт)', style: AppType.sm(c)),
         ],
       ),
     );
@@ -323,6 +362,70 @@ class _StatusRow extends StatelessWidget {
           ),
         ],
       ),
+      ),
+    );
+  }
+}
+
+class _AttendanceButton extends StatelessWidget {
+  final VoidCallback? onTap;
+  final bool loading;
+  final IconData icon;
+  final String label;
+  final bool gradient;
+  final AppColors c;
+
+  const _AttendanceButton({
+    required this.onTap,
+    required this.icon,
+    required this.label,
+    required this.c,
+    this.loading = false,
+    this.gradient = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final disabled = onTap == null;
+    return Opacity(
+      opacity: disabled ? 0.5 : 1.0,
+      child: GestureDetector(
+        onTap: onTap,
+        child: Container(
+          height: 48,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            gradient: gradient ? AppGradients.aura(c) : null,
+            color: gradient ? null : c.surface3,
+            borderRadius: BorderRadius.circular(AppSpacing.rSm),
+          ),
+          child: loading
+              ? SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: gradient ? Colors.white : c.accentSolid,
+                  ),
+                )
+              : Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      icon,
+                      size: 18,
+                      color: gradient ? Colors.white : c.text,
+                    ),
+                    const SizedBox(width: AppSpacing.s2),
+                    Text(
+                      label,
+                      style: AppType.bodyStrong(c).copyWith(
+                        color: gradient ? Colors.white : c.text,
+                      ),
+                    ),
+                  ],
+                ),
+        ),
       ),
     );
   }

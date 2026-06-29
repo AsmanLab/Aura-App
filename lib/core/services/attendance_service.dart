@@ -21,7 +21,7 @@ class AttendanceService {
   Future<void> markAttendance({required double latitude, required double longitude}) async {
     final currentUser = _auth.currentUser;
     if (currentUser == null) throw Exception('User not authenticated');
-    if (!isWithinTimeWindow()) throw Exception('Attendance is only available Monday–Friday, 13:00–15:00');
+    if (!isWithinTimeWindow()) throw Exception('Attendance is only available Monday–Friday, 11:00–13:00');
     if (!await _isWithinClassLocation(latitude, longitude)) throw Exception('You are outside the office location');
     final now = _now;
     final recordId = '${currentUser.uid}_${attendanceDateKey(now)}';
@@ -88,7 +88,7 @@ class AttendanceService {
     final weekday = now.weekday;
     if (weekday < 1 || weekday > 5) return false;
     final timeInMinutes = now.hour * 60 + now.minute;
-    return timeInMinutes >= 13 * 60 && timeInMinutes <= 15 * 60;
+    return timeInMinutes >= 11 * 60 && timeInMinutes <= 13 * 60;
   }
 
   static String attendanceDateKey(DateTime date) {
@@ -154,9 +154,9 @@ class AttendanceService {
   }
 
   // Office coordinates (Bishkek). Change here if the office moves.
-  static const double _officeLat = 42.8735;
-  static const double _officeLng = 74.5752;
-  static const double _officeRadiusMeters = 50.0;
+  static const double _officeLat = 42.829346;
+  static const double _officeLng = 74.630618;
+  static const double _officeRadiusMeters = 100.0;
 
   Future<bool> _isWithinClassLocation(double latitude, double longitude) async {
     final distance = Geolocator.distanceBetween(

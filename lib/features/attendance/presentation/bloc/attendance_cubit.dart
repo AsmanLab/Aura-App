@@ -85,7 +85,7 @@ class AttendanceCubit extends Cubit<AttendanceState> {
   }
 
   Future<void> _init() async {
-    emit(state.copyWith(loading: true, canCheckIn: _repo.isWithinTimeWindow()));
+    emit(state.copyWith(loading: true));
 
     _subscriptions.add(
       _repo.watchMyAttendance(_resolvedUserId!).listen((records) {
@@ -93,10 +93,11 @@ class AttendanceCubit extends Cubit<AttendanceState> {
           final todayKey = _dateKey(DateTime.now().toUtc());
           final existingRecord = records.cast<AttendanceRecord?>().firstWhere(
             (r) => r?.dateKey == todayKey, orElse: () => null);
-          
+
           emit(state.copyWith(
             myRecords: records,
-            canCheckIn: existingRecord == null && _repo.isWithinTimeWindow(),
+            // Button always visible; server validates time window.
+            canCheckIn: existingRecord == null,
             canCheckOut: existingRecord != null && existingRecord.checkOutNote == null,
             canStartLunch: existingRecord != null && existingRecord.lunchStart == null && existingRecord.checkOutNote == null,
             canEndLunch: existingRecord != null && existingRecord.lunchStart != null && existingRecord.lunchEnd == null,
