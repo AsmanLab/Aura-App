@@ -84,7 +84,7 @@ class AttendanceService {
   }
 
   bool isWithinTimeWindow() {
-    final now = DateTime.now(); // local time — window is expressed in local time
+    final now = DateTime.now();
     final weekday = now.weekday;
     if (weekday < 1 || weekday > 5) return false;
     final timeInMinutes = now.hour * 60 + now.minute;
