@@ -198,16 +198,27 @@ class SeedData {
     ),
   ];
 
-  /// Mon–Sun, today = Wed 03.
-  static const List<DutyDay> dutyWeek = [
-    DutyDay(day: 'Mon', date: '01', personId: 'ruslan'),
-    DutyDay(day: 'Tue', date: '02', personId: 'elena'),
-    DutyDay(day: 'Wed', date: '03', personId: 'aibek', isToday: true),
-    DutyDay(day: 'Thu', date: '04', personId: 'daniyar'),
-    DutyDay(day: 'Fri', date: '05', personId: 'aizada'),
-    DutyDay(day: 'Sat', date: '06', personId: 'bakyt'),
-    DutyDay(day: 'Sun', date: '07', personId: 'nurlan'),
-  ];
+  static List<DutyDay> get dutyWeek {
+    final now = DateTime.now();
+    final currentDay = now.weekday; // 1=Mon, 5=Fri
+    final startOfWeek = now.subtract(Duration(days: currentDay - 1));
+    final days = <DutyDay>[];
+    final peopleIds = [
+      'ruslan', 'elena', 'aibek', 'daniyar', 'aizada'
+    ];
+    for (int i = 0; i < 5; i++) {
+      final d = startOfWeek.add(Duration(days: i));
+      days.add(DutyDay(
+        day: _dayNames[i],
+        date: d.day.toString().padLeft(2, '0'),
+        personId: peopleIds[i],
+        isToday: i == currentDay - 1,
+      ));
+    }
+    return days;
+  }
+
+  static const List<String> _dayNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'];
 
   /// Aibek's Wed shift checklist.
   static const List<ChecklistItem> checklist = [
