@@ -19,16 +19,17 @@ import 'package:aura_app/core/widgets/skeleton.dart';
 import 'package:aura_app/features/attendance/presentation/bloc/attendance_cubit.dart';
 import 'package:aura_app/features/auth/domain/repositories/auth_repository.dart';
 import 'package:aura_app/features/profile/domain/repositories/profile_repository.dart';
+import 'package:aura_app/l10n/generated/app_localizations.dart';
 
 class HomePage extends StatelessWidget {
   const HomePage({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final s = S.of(context);
     final c = Theme.of(context).extension<AppColors>()!;
     final me = sl<AuthRepository>().currentUser;
     final uid = me?.id;
-    final firstName = me?.displayName.split(' ').first ?? 'there';
 
     return Scaffold(
       backgroundColor: c.bg,
@@ -54,6 +55,10 @@ class HomePage extends StatelessWidget {
                   : sl<ProfileRepository>().watchUser(uid),
               builder: (context, userSnap) {
                 final user = userSnap.data;
+                final displayName = user?.displayName ?? me?.displayName ?? '';
+                final firstName = displayName.trim().isEmpty
+                    ? 'there'
+                    : displayName.split(' ').first;
                 final isIntern = user?.role == Role.intern;
                 return StreamBuilder<List<AuraTransaction>>(
                   stream: uid == null
@@ -79,7 +84,7 @@ class HomePage extends StatelessWidget {
                               DateFormat('EEEE, MMM d').format(DateTime.now()),
                               style: AppType.sm(c),
                             ),
-                            Text('Hi, $firstName', style: AppType.h1(c)),
+                            Text(s.greeting(firstName), style: AppType.h1(c)),
                           ],
                         ),
                         if (user != null) ...[
@@ -91,10 +96,10 @@ class HomePage extends StatelessWidget {
                           ],
                         ],
                         SectionLabel(
-                          'My Aura',
+                          s.myAura,
                           trailing: GestureDetector(
                             onTap: () => context.push('/aura/history'),
-                            child: Text('See all', style: AppType.sm(c)),
+                            child: Text(s.seeAll, style: AppType.sm(c)),
                           ),
                         ),
                         if (loading)
@@ -102,7 +107,7 @@ class HomePage extends StatelessWidget {
                         else if (history.isEmpty)
                           AppCard(
                             child: Text(
-                              'No Aura yet.',
+                              s.noAuraYet,
                               style: AppType.bodyDim(c),
                             ),
                           )
@@ -139,6 +144,7 @@ class _AttendanceHomeCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final s = S.of(context);
     final c = Theme.of(context).extension<AppColors>()!;
     return BlocBuilder<AttendanceCubit, AttendanceState>(
       builder: (context, state) {
@@ -188,7 +194,7 @@ class _AttendanceHomeCard extends StatelessWidget {
               const SizedBox(width: AppSpacing.s3),
               Expanded(
                 child: Text(
-                  "Today's Attendance",
+                  s.todaysAttendance,
                   style: AppType.bodyStrong(c),
                 ),
               ),
@@ -206,7 +212,7 @@ class _AttendanceHomeCard extends StatelessWidget {
                             color: Colors.white,
                           ),
                         )
-                      : const Text('Check In'),
+                      : Text(s.checkIn),
                 ),
               if (state.canCheckOut)
                 OutlinedButton(
@@ -221,7 +227,7 @@ class _AttendanceHomeCard extends StatelessWidget {
                           height: 16,
                           child: CircularProgressIndicator(strokeWidth: 2),
                         )
-                      : const Text('Check Out'),
+                      : Text(s.checkOut),
                 ),
               if (!state.canCheckIn &&
                   !state.canCheckOut &&
@@ -234,7 +240,7 @@ class _AttendanceHomeCard extends StatelessWidget {
                     borderRadius: BorderRadius.circular(AppSpacing.rChip),
                   ),
                   child: Text(
-                    'Done / break',
+                    s.doneBreak,
                     style: AppType.sm(c).copyWith(color: c.success),
                   ),
                 ),
@@ -249,7 +255,7 @@ class _AttendanceHomeCard extends StatelessWidget {
                     borderRadius: BorderRadius.circular(AppSpacing.rChip),
                   ),
                   child: Text(
-                    'Absent',
+                    s.absent,
                     style: AppType.sm(c).copyWith(color: c.textDim),
                   ),
                 ),

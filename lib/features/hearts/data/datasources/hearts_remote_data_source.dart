@@ -10,12 +10,12 @@ abstract class HeartsRemoteDataSource {
 }
 
 class HeartsRemoteDataSourceImpl implements HeartsRemoteDataSource {
-  final FirebaseFirestore _db;
+  final FirebaseFirestore? _db;
   HeartsRemoteDataSourceImpl(this._db);
 
   @override
   Future<List<UserModel>> getInterns() async {
-    final snap = await _db
+    final snap = await _db!
         .collection('users')
         .where('role', isEqualTo: 'intern')
         .get();
@@ -27,9 +27,9 @@ class HeartsRemoteDataSourceImpl implements HeartsRemoteDataSource {
 
   @override
   Future<void> changeHeart(HeartTransaction txn) async {
-    final userRef = _db.collection('users').doc(txn.toUserId);
+    final userRef = _db!.collection('users').doc(txn.toUserId);
     final txnRef = _db.collection('hearts_transactions').doc(txn.id);
-    await _db.runTransaction((t) async {
+    _db.runTransaction((t) async {
       final snap = await t.get(userRef);
       final current = (snap.data()?['hearts'] ?? UserModel.maxHearts) as int;
       final next = current + txn.delta;

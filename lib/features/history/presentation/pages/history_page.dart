@@ -13,6 +13,7 @@ import 'package:aura_app/core/widgets/category_chip.dart';
 import 'package:aura_app/core/widgets/skeleton.dart';
 import 'package:aura_app/features/auth/domain/repositories/auth_repository.dart';
 import 'package:aura_app/features/profile/domain/repositories/profile_repository.dart';
+import 'package:aura_app/l10n/generated/app_localizations.dart';
 
 /// Full aura history — filter by category, grouped by date.
 class HistoryPage extends StatefulWidget {
@@ -33,6 +34,7 @@ class _HistoryPageState extends State<HistoryPage> {
 
   @override
   Widget build(BuildContext context) {
+    final s = S.of(context);
     final c = Theme.of(context).extension<AppColors>()!;
     return Scaffold(
       backgroundColor: c.bg,
@@ -40,7 +42,7 @@ class _HistoryPageState extends State<HistoryPage> {
         backgroundColor: c.bg,
         foregroundColor: c.text,
         elevation: 0,
-        title: Text('History', style: AppType.h3(c)),
+        title: Text(s.history, style: AppType.h3(c)),
       ),
       body: SafeArea(
         top: false,
@@ -62,7 +64,7 @@ class _HistoryPageState extends State<HistoryPage> {
                     t.timestamp.year == _month.year &&
                     t.timestamp.month == _month.month)
                 .toList();
-            final groups = _groupByDay(filtered);
+            final groups = _groupByDay(context, filtered);
 
             return Column(
               children: [
@@ -95,7 +97,7 @@ class _HistoryPageState extends State<HistoryPage> {
                         Padding(
                           padding: const EdgeInsets.only(top: AppSpacing.s8),
                           child: Center(
-                            child: Text('No aura yet.',
+                            child: Text(s.noAuraYet,
                                 style: AppType.bodyDim(c)),
                           ),
                         )
@@ -138,23 +140,24 @@ class _DayGroup {
   _DayGroup(this.label, this.items);
 }
 
-List<_DayGroup> _groupByDay(List<AuraTransaction> txns) {
-  final groups = <String, List<AuraTransaction>>{};
-  for (final t in txns) {
-    groups.putIfAbsent(_dayLabel(t.timestamp), () => []).add(t);
-  }
-  return groups.entries.map((e) => _DayGroup(e.key, e.value)).toList();
-}
-
-String _dayLabel(DateTime t) {
+String _dayLabel(BuildContext context, DateTime t) {
+  final s = S.of(context);
   final now = DateTime.now();
   final day = DateTime(t.year, t.month, t.day);
   final today = DateTime(now.year, now.month, now.day);
   final diff = today.difference(day).inDays;
-  if (diff == 0) return 'Today';
-  if (diff == 1) return 'Yesterday';
+  if (diff == 0) return s.today;
+  if (diff == 1) return s.yesterday;
   if (diff < 7) return DateFormat('EEEE').format(t); // weekday
   return DateFormat('MMMM d, y').format(t);
+}
+
+List<_DayGroup> _groupByDay(BuildContext context, List<AuraTransaction> txns) {
+  final groups = <String, List<AuraTransaction>>{};
+  for (final t in txns) {
+    groups.putIfAbsent(_dayLabel(context, t.timestamp), () => []).add(t);
+  }
+  return groups.entries.map((e) => _DayGroup(e.key, e.value)).toList();
 }
 
 class _PeriodBar extends StatelessWidget {
@@ -367,6 +370,7 @@ class _AllChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final s = S.of(context);
     final c = Theme.of(context).extension<AppColors>()!;
     return Center(
       child: GestureDetector(
@@ -380,7 +384,7 @@ class _AllChip extends StatelessWidget {
             border: Border.all(color: selected ? c.accentSolid : c.border),
           ),
           child: Text(
-            'All',
+            s.allFilter,
             style: AppType.sm(c).copyWith(
               color: selected ? Colors.white : c.textDim,
             ),

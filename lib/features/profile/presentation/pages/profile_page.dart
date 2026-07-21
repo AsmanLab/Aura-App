@@ -24,6 +24,7 @@ import 'package:aura_app/core/widgets/section_label.dart';
 import 'package:aura_app/features/auth/domain/repositories/auth_repository.dart';
 import 'package:aura_app/features/profile/domain/repositories/profile_repository.dart';
 import 'package:aura_app/features/profile/presentation/bloc/user_profile_cubit.dart';
+import 'package:aura_app/l10n/generated/app_localizations.dart';
 
 class ProfilePage extends StatelessWidget {
   /// Null = the signed-in user (tab); otherwise another person (pushed).
@@ -65,10 +66,11 @@ class _MyProfileViewState extends State<_MyProfileView> {
 
   @override
   Widget build(BuildContext context) {
+    final s = S.of(context);
     final c = Theme.of(context).extension<AppColors>()!;
     if (_uid == null) {
       return Center(
-        child: Text('Could not load profile.', style: AppType.body(c)),
+        child: Text(s.userNotFound, style: AppType.body(c)),
       );
     }
     return StreamBuilder<UserModel?>(
@@ -81,7 +83,7 @@ class _MyProfileViewState extends State<_MyProfileView> {
         final user = userSnap.data;
         if (user == null) {
           return Center(
-            child: Text('Could not load profile.', style: AppType.body(c)),
+            child: Text(s.userNotFound, style: AppType.body(c)),
           );
         }
         return StreamBuilder<List<AuraTransaction>>(
@@ -100,7 +102,7 @@ class _MyProfileViewState extends State<_MyProfileView> {
                   alignment: Alignment.centerRight,
                   child: IconButton(
                     icon: Icon(Icons.edit_outlined, color: c.text),
-                    tooltip: 'Edit profile',
+                    tooltip: s.editProfile,
                     onPressed: () => context.push('/aura/profile/edit'),
                   ),
                 ),
@@ -120,17 +122,23 @@ class _MyProfileViewState extends State<_MyProfileView> {
                     children: [
                       _NavRow(
                         icon: Icons.shield_rounded,
-                        label: 'Duty',
+                        label: s.duty,
                         onTap: () => context.push('/aura/duty'),
                       ),
                       _NavRow(
                         icon: Icons.menu_book_rounded,
-                        label: 'Knowledge',
+                        label: s.knowledge,
                         onTap: () => context.push('/aura/knowledge'),
                       ),
+                      if (user.role == Role.admin)
+                        _NavRow(
+                          icon: Icons.admin_panel_settings_rounded,
+                          label: s.adminPanel,
+                          onTap: () => context.push('/aura/admin/users'),
+                        ),
                       _NavRow(
                         icon: Icons.settings_rounded,
-                        label: 'Settings',
+                        label: s.settings,
                         onTap: () => context.push('/aura/settings'),
                         divider: false,
                       ),
@@ -163,6 +171,7 @@ class _UserProfileViewState extends State<_UserProfileView> {
 
   void _showAttendanceDetails(
       BuildContext context, AppColors c, AttendanceRecord r) {
+    final s = S.of(context);
     showModalBottomSheet(
       context: context,
       backgroundColor: c.surface,
@@ -199,7 +208,7 @@ class _UserProfileViewState extends State<_UserProfileView> {
             const SizedBox(height: AppSpacing.s4),
             _AttendanceRow(
               icon: Icons.login,
-              label: 'Check-in',
+              label: s.checkIn,
               value: DateFormat('HH:mm').format(r.timestamp.toLocal()),
               c: c,
             ),
@@ -207,7 +216,7 @@ class _UserProfileViewState extends State<_UserProfileView> {
               const SizedBox(height: AppSpacing.s3),
               _AttendanceRow(
                 icon: Icons.restaurant,
-                label: 'Lunch start',
+                label: s.lunchStart,
                 value: DateFormat('HH:mm').format(r.lunchStart!.toLocal()),
                 c: c,
               ),
@@ -216,7 +225,7 @@ class _UserProfileViewState extends State<_UserProfileView> {
               const SizedBox(height: AppSpacing.s3),
               _AttendanceRow(
                 icon: Icons.restaurant_outlined,
-                label: 'Lunch end',
+                label: s.lunchEnd,
                 value: DateFormat('HH:mm').format(r.lunchEnd!.toLocal()),
                 c: c,
               ),
@@ -225,7 +234,7 @@ class _UserProfileViewState extends State<_UserProfileView> {
               const SizedBox(height: AppSpacing.s3),
               _AttendanceRow(
                 icon: Icons.logout,
-                label: 'Check-out',
+                label: s.checkOut,
                 value: r.checkOutNote!,
                 c: c,
               ),
@@ -238,6 +247,7 @@ class _UserProfileViewState extends State<_UserProfileView> {
 
   @override
   Widget build(BuildContext context) {
+    final s = S.of(context);
     final c = Theme.of(context).extension<AppColors>()!;
     return FutureBuilder<UserModel?>(
       future: _meFuture,
@@ -258,7 +268,7 @@ class _UserProfileViewState extends State<_UserProfileView> {
                   SliverFillRemaining(
                     hasScrollBody: false,
                     child: Center(
-                      child: Text('User not found.', style: AppType.body(c)),
+                      child: Text(s.userNotFound, style: AppType.body(c)),
                     ),
                   )
                 else
@@ -309,7 +319,7 @@ class _UserProfileViewState extends State<_UserProfileView> {
                             children: [
                               Expanded(
                                 child: _ActionButton(
-                                  label: 'Aura',
+                                  label: s.awardAura,
                                   gradient: true,
                                   onTap: () => context.push(
                                     '/aura/award?internId=${user.id}',
@@ -320,7 +330,7 @@ class _UserProfileViewState extends State<_UserProfileView> {
                                 const SizedBox(width: AppSpacing.s3),
                                 Expanded(
                                   child: _ActionButton(
-                                    label: 'Hearts',
+                                    label: s.giveHearts,
                                     color: c.heart,
                                     onTap: () => context.push(
                                       '/aura/hearts?recipientId=${user.id}',
@@ -333,7 +343,7 @@ class _UserProfileViewState extends State<_UserProfileView> {
                         ],
 
                         // ── Attendance calendar ──
-                        SectionLabel('Attendance'),
+                        SectionLabel(s.attendance),
                         AttendanceMonthCalendar(
                           records: state.attendanceRecords,
                           onDayTap: (r) =>
@@ -404,6 +414,7 @@ class _ProfileSliverBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = Theme.of(context).extension<AppColors>()!;
+    final isRu = Localizations.localeOf(context).languageCode == 'ru';
     return SliverAppBar(
       pinned: true,
       expandedHeight: user == null ? kToolbarHeight : 230,
@@ -437,7 +448,7 @@ class _ProfileSliverBar extends StatelessWidget {
                           ring: true,
                         ),
                         const SizedBox(height: AppSpacing.s2),
-                        Text(user!.positionLabel, style: AppType.sm(c)),
+                         Text(isRu ? user!.role.labelRu : user!.role.label, style: AppType.sm(c)),
                       ],
                     ),
                   ),
@@ -455,6 +466,7 @@ class _Identity extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = Theme.of(context).extension<AppColors>()!;
+    final isRu = Localizations.localeOf(context).languageCode == 'ru';
     return Column(
       children: [
         Avatar(
@@ -466,7 +478,7 @@ class _Identity extends StatelessWidget {
         ),
         const SizedBox(height: AppSpacing.s3),
         Text(user.displayName, style: AppType.h2(c)),
-        Text(user.positionLabel, style: AppType.sm(c)),
+        Text(isRu ? user.role.labelRu : user.role.label, style: AppType.sm(c)),
         const SizedBox(height: AppSpacing.s2),
         RoleBadge(user.role),
       ],
@@ -480,6 +492,7 @@ class _StatsCards extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final s = S.of(context);
     final c = Theme.of(context).extension<AppColors>()!;
     return Column(
       children: [
@@ -487,17 +500,17 @@ class _StatsCards extends StatelessWidget {
         Row(
           children: [
             Expanded(
-              child: _StatTile(label: 'Total Aura', value: user.totalAura),
+              child: _StatTile(label: s.totalAura, value: user.totalAura),
             ),
             const SizedBox(width: AppSpacing.s3),
             Expanded(
-              child: _StatTile(label: 'This week', value: user.currentWeekAura),
+              child: _StatTile(label: s.thisWeek, value: user.currentWeekAura),
             ),
           ],
         ),
         const SizedBox(height: AppSpacing.s4),
         Text(
-          'Member since ${DateFormat.yMMMd().format(user.createdAt)}',
+          s.memberSince(DateFormat.yMMMd().format(user.createdAt)),
           style: AppType.sm(c).copyWith(color: c.textFaint),
         ),
       ],
@@ -536,13 +549,14 @@ class _HistorySection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final s = S.of(context);
     final c = Theme.of(context).extension<AppColors>()!;
     final shown = history.take(3).toList();
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         SectionLabel(
-          'Aura history',
+          s.auraHistory,
           trailing: history.isEmpty
               ? null
               : GestureDetector(
@@ -551,11 +565,11 @@ class _HistorySection extends StatelessWidget {
                         ? '/aura/history'
                         : '/aura/history?userId=$seeAllUserId',
                   ),
-                  child: Text('See all', style: AppType.sm(c)),
+                  child: Text(s.seeAll, style: AppType.sm(c)),
                 ),
         ),
         if (shown.isEmpty)
-          AppCard(child: Text('No Aura yet.', style: AppType.bodyDim(c)))
+          AppCard(child: Text(s.noAuraYet, style: AppType.bodyDim(c)))
         else
           AppCard.flush(
             child: Column(

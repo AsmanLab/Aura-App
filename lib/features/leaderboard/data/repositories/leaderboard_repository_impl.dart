@@ -8,14 +8,29 @@ import '../../domain/entities/leaderboard_entry.dart';
 import '../../domain/repositories/leaderboard_repository.dart';
 import '../datasources/leaderboard_remote_data_source.dart';
 
+const _demoMode = bool.fromEnvironment('DEMO', defaultValue: true);
+
 class LeaderboardRepositoryImpl implements LeaderboardRepository {
   final LeaderboardRemoteDataSource _remote;
-  final FirebaseAuth _auth;
+  final FirebaseAuth? _auth;
 
   LeaderboardRepositoryImpl(this._remote, this._auth);
 
   @override
   Stream<List<LeaderboardEntry>> watchLeaderboard(LbFilter filter) {
+    if (_demoMode) {
+      return _remote.watchUsers().map((users) {
+        return _rank(
+          users.map(
+            (u) => LeaderboardEntry(
+              u,
+              filter == LbFilter.week ? u.currentWeekAura : u.totalAura,
+            ),
+          ),
+        );
+      });
+    }
+
     if (filter != LbFilter.month) {
       return _remote.watchUsers().map((users) {
         return _rank(
@@ -77,5 +92,6 @@ class LeaderboardRepositoryImpl implements LeaderboardRepository {
   }
 
   @override
-  String? get currentUserId => _auth.currentUser?.uid;
+  String? get currentUserId =>
+      _demoMode ? 'demo-user' : _auth?.currentUser?.uid;
 }

@@ -23,12 +23,12 @@ abstract class AwardRemoteDataSource {
 }
 
 class AwardRemoteDataSourceImpl implements AwardRemoteDataSource {
-  final FirebaseFirestore _db;
+  final FirebaseFirestore? _db;
   AwardRemoteDataSourceImpl(this._db);
 
   @override
   Future<List<UserModel>> getAllUsers() async {
-    final snap = await _db.collection('users').limit(200).get();
+    final snap = await _db!.collection('users').limit(200).get();
     final users =
         snap.docs.map((d) => UserModel.fromMap(d.data(), d.id)).toList();
     users.sort((a, b) => a.displayName.compareTo(b.displayName));
@@ -37,7 +37,7 @@ class AwardRemoteDataSourceImpl implements AwardRemoteDataSource {
 
   @override
   Future<void> award(AuraTransaction txn, {required bool isMentor}) async {
-    final txnRef = _db.collection('aura_transactions').doc(txn.id);
+    final txnRef = _db!.collection('aura_transactions').doc(txn.id);
     final toRef = _db.collection('users').doc(txn.toUserId);
 
     // Mentors: no quota — a plain batch is enough.
