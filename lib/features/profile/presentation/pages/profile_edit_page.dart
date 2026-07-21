@@ -8,6 +8,7 @@ import 'package:aura_app/core/theme/app_spacing.dart';
 import 'package:aura_app/core/theme/app_typography.dart';
 import 'package:aura_app/core/widgets/app_card.dart';
 import 'package:aura_app/core/widgets/avatar.dart';
+import 'package:aura_app/l10n/generated/app_localizations.dart';
 import '../bloc/profile_edit_cubit.dart';
 
 class ProfileEditPage extends StatelessWidget {
@@ -15,6 +16,7 @@ class ProfileEditPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final s = S.of(context);
     final c = Theme.of(context).extension<AppColors>()!;
     return Scaffold(
       backgroundColor: c.bg,
@@ -23,7 +25,7 @@ class ProfileEditPage extends StatelessWidget {
         surfaceTintColor: Colors.transparent,
         foregroundColor: c.text,
         elevation: 0,
-        title: Text('Edit profile', style: AppType.h3(c)),
+        title: Text(s.editProfile, style: AppType.h3(c)),
       ),
       body: BlocConsumer<ProfileEditCubit, ProfileEditState>(
         listenWhen: (p, n) => p.saved != n.saved || p.error != n.error,
@@ -63,6 +65,7 @@ class _EditForm extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final s = S.of(context);
     final c = Theme.of(context).extension<AppColors>()!;
     final cubit = context.read<ProfileEditCubit>();
     final state = context.watch<ProfileEditCubit>().state;
@@ -112,11 +115,11 @@ class _EditForm extends StatelessWidget {
           ),
         ),
         const SizedBox(height: AppSpacing.s6),
-        Text('NAME', style: AppType.label(c)),
+        Text(s.nameLabel, style: AppType.label(c)),
         const SizedBox(height: AppSpacing.s2),
         _Field(
           initial: state.displayName,
-          hint: 'Your name',
+          hint: s.yourNameHint,
           onChanged: cubit.setName,
         ),
         const SizedBox(height: AppSpacing.s7),
@@ -141,7 +144,7 @@ class _EditForm extends StatelessWidget {
                       ),
                     )
                   : Text(
-                      'Save',
+                      s.save,
                       style: AppType.bodyStrong(c).copyWith(
                         color: Colors.white,
                       ),

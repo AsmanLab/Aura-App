@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:aura_app/core/widgets/skeleton.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
+import 'package:intl/intl.dart';
 
 import 'package:aura_app/core/di/injection.dart';
 import 'package:aura_app/core/theme/app_colors.dart';
@@ -13,13 +14,68 @@ import 'package:aura_app/core/domain/repositories/people_repository.dart';
 import 'package:aura_app/core/widgets/app_card.dart';
 import 'package:aura_app/core/widgets/avatar.dart';
 import 'package:aura_app/core/widgets/section_label.dart';
+import 'package:aura_app/l10n/generated/app_localizations.dart';
 import '../bloc/duty_cubit.dart';
 
-class DutyPage extends StatelessWidget {
+class DutyPage extends StatefulWidget {
   const DutyPage({super.key});
 
   @override
+  State<DutyPage> createState() => _DutyPageState();
+}
+
+class _DutyPageState extends State<DutyPage> {
+  late final TextEditingController _noteController;
+
+  @override
+  void initState() {
+    super.initState();
+    _noteController = TextEditingController(
+      text: context.read<DutyCubit>().state.shiftNote,
+    );
+  }
+
+  @override
+  void dispose() {
+    _noteController.dispose();
+    super.dispose();
+  }
+
+  void _addTask() {
+    final s = S.of(context);
+    final controller = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: Theme.of(context).extension<AppColors>()!.surface,
+        title: Text(s.addTask, style: AppType.h3(Theme.of(context).extension<AppColors>()!)),
+        content: TextField(
+          controller: controller,
+          decoration: InputDecoration(
+            hintText: s.taskName,
+            border: const OutlineInputBorder(),
+          ),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: Text(s.cancel)),
+          TextButton(
+            onPressed: () {
+              final text = controller.text.trim();
+              if (text.isNotEmpty) {
+                context.read<DutyCubit>().addChecklistItem(text);
+              }
+              Navigator.pop(ctx);
+            },
+            child: Text(s.addTask),
+          ),
+        ],
+      ),
+    );
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final s = S.of(context);
     final c = Theme.of(context).extension<AppColors>()!;
     return Scaffold(
       backgroundColor: c.bg,
@@ -61,7 +117,7 @@ class DutyPage extends StatelessWidget {
                           icon: Icon(Icons.arrow_back, color: c.text),
                         ),
                         const SizedBox(width: AppSpacing.s3),
-                        Text('Duty', style: AppType.h1(c)),
+                        Text(s.duty, style: AppType.h1(c)),
                       ],
                     ),
                     const SizedBox(height: AppSpacing.s4),
@@ -80,7 +136,7 @@ class DutyPage extends StatelessWidget {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                'ON DUTY NOW',
+                                s.onDutyNow,
                                 style: AppType.label(c)
                                     .copyWith(color: c.success),
                               ),
@@ -91,54 +147,86 @@ class DutyPage extends StatelessWidget {
                         ],
                       ),
                     ),
-                    const SectionLabel('This week'),
+                    SectionLabel(s.thisWeek),
                     Row(
                       children: [
                         for (final d in state.week)
                           Expanded(child: _DayCell(day: d, byId: byId)),
                       ],
                     ),
-                    const SectionLabel('My shift'),
+                    SectionLabel(s.myShift),
                     AppCard(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              Text('Wednesday, Jun 3', style: AppType.h3(c)),
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 9, vertical: 3),
-                                decoration: BoxDecoration(
-                                  color: c.success.withValues(alpha: 0.15),
-                                  borderRadius: BorderRadius.circular(999),
-                                ),
-                                child: Text('Active',
-                                    style: AppType.sm(c)
-                                        .copyWith(color: c.success)),
+                              Icon(Icons.calendar_today_rounded, size: 18, color: c.accent1),
+                              const SizedBox(width: AppSpacing.s2),
+                              Text(
+                                DateFormat('EEEE, MMM d').format(DateTime.now()),
+                                style: AppType.h3(c),
                               ),
                             ],
                           ),
-                          Text('10:00 — 18:00 · Bishkek', style: AppType.sm(c)),
-                          const SizedBox(height: AppSpacing.s4),
-                          Text(
-                            'Checklist · ${state.done}/${state.checklist.length}',
-                            style: AppType.label(c),
+                          const SizedBox(height: AppSpacing.s2),
+                          Row(
+                            children: [
+                              Icon(Icons.access_time_rounded, size: 18, color: c.accent1),
+                              const SizedBox(width: AppSpacing.s2),
+                              Text('10:00 — 18:00', style: AppType.body(c)),
+                              const SizedBox(width: AppSpacing.s2),
+                              Icon(Icons.location_on_rounded, size: 16, color: c.textFaint),
+                              const SizedBox(width: AppSpacing.s1),
+                              Text('Bishkek', style: AppType.sm(c)),
+                            ],
+                          ),
+                          const SizedBox(height: AppSpacing.s3),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  s.checklist(state.done, state.checklist.length),
+                                  style: AppType.label(c),
+                                ),
+                              ),
+                              TextButton.icon(
+                                onPressed: _addTask,
+                                icon: Icon(Icons.add_rounded, size: 18),
+                                label: Text(s.addTask),
+                              ),
+                            ],
                           ),
                           const SizedBox(height: AppSpacing.s2),
                           for (final item in state.checklist)
                             _ChecklistRow(item: item),
                           const SizedBox(height: AppSpacing.s4),
-                          Text('Handoff note', style: AppType.label(c)),
+                          Row(
+                            children: [
+                              Icon(Icons.note_rounded, size: 18, color: c.accent1),
+                              const SizedBox(width: AppSpacing.s2),
+                              Text(s.handoffNote, style: AppType.label(c)),
+                              const Spacer(),
+                              if (state.shiftNote.isNotEmpty)
+                                IconButton(
+                                  onPressed: () {
+                                    _noteController.clear();
+                                    context.read<DutyCubit>().clearShiftNote();
+                                  },
+                                  icon: Icon(Icons.clear_rounded, size: 18, color: c.textFaint),
+                                  tooltip: s.cancel,
+                                ),
+                            ],
+                          ),
                           const SizedBox(height: AppSpacing.s2),
                           TextField(
+                            controller: _noteController,
                             maxLines: 3,
                             style: AppType.body(c),
                             decoration: InputDecoration(
                               filled: true,
                               fillColor: c.surface2,
-                              hintText: 'What should the next shift know?',
+                              hintText: s.handoffHint,
                               hintStyle: AppType.bodyDim(c),
                               border: OutlineInputBorder(
                                 borderRadius:
@@ -146,6 +234,8 @@ class DutyPage extends StatelessWidget {
                                 borderSide: BorderSide.none,
                               ),
                             ),
+                            onChanged: (v) =>
+                                context.read<DutyCubit>().updateShiftNote(v),
                           ),
                         ],
                       ),
@@ -183,7 +273,7 @@ class _DayCell extends StatelessWidget {
           color: day.isToday ? null : c.surface,
           borderRadius: BorderRadius.circular(AppSpacing.rSm),
           border: Border.all(
-            color: !day.isToday && isMine ? c.accentSolid : c.border,
+            color: day.isToday ? Colors.transparent : c.border,
           ),
         ),
         child: Column(
@@ -249,6 +339,11 @@ class _ChecklistRow extends StatelessWidget {
                       item.done ? TextDecoration.lineThrough : null,
                 ),
               ),
+            ),
+            IconButton(
+              onPressed: () => context.read<DutyCubit>().deleteChecklistItem(item.id),
+              icon: Icon(Icons.delete_outline_rounded, size: 18, color: c.textFaint),
+              tooltip: 'Delete',
             ),
           ],
         ),

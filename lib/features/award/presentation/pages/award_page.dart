@@ -13,6 +13,7 @@ import 'package:aura_app/core/widgets/app_card.dart';
 import 'package:aura_app/core/widgets/aura_value.dart';
 import 'package:aura_app/core/widgets/avatar.dart';
 import 'package:aura_app/core/widgets/category_chip.dart';
+import 'package:aura_app/l10n/generated/app_localizations.dart';
 import '../../data/datasources/award_remote_data_source.dart'
     show auraDailyLimit;
 import '../bloc/award_cubit.dart';
@@ -22,6 +23,7 @@ class AwardPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final s = S.of(context);
     final c = Theme.of(context).extension<AppColors>()!;
     return Scaffold(
       backgroundColor: c.bg,
@@ -69,7 +71,7 @@ class AwardPage extends StatelessWidget {
                       ),
                       Expanded(
                         child: Text(
-                          'Award Aura',
+                          s.awardAura,
                           textAlign: TextAlign.center,
                           style: AppType.h3(c),
                         ),
@@ -121,14 +123,14 @@ class AwardPage extends StatelessWidget {
                       if (state.step > 0)
                         TextButton(
                           onPressed: cubit.back,
-                          child: Text('Back', style: AppType.bodyStrong(c)),
+                          child: Text(s.back, style: AppType.bodyStrong(c)),
                         ),
                       const Spacer(),
                       if (state.step == 3)
                         _AwardButton(state: state, cubit: cubit)
                       else
                         _PrimaryButton(
-                          label: 'Continue',
+                          label: s.continueBtn,
                           enabled: state.canContinue && !state.submitting,
                           onTap: cubit.next,
                         ),
@@ -151,6 +153,7 @@ class _StepBody extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final s = S.of(context);
     final c = Theme.of(context).extension<AppColors>()!;
     final pad = const EdgeInsets.all(AppSpacing.screenPad);
     switch (state.step) {
@@ -162,7 +165,7 @@ class _StepBody extends StatelessWidget {
             if (state.isMentor)
               Row(
                 children: [
-                  Expanded(child: Text('Who is it for?', style: AppType.h2(c))),
+                  Expanded(child: Text(s.whoIsItFor, style: AppType.h2(c))),
                   if (selected.isNotEmpty)
                     Container(
                       padding: const EdgeInsets.symmetric(
@@ -174,14 +177,14 @@ class _StepBody extends StatelessWidget {
                         borderRadius: BorderRadius.circular(AppSpacing.rChip),
                       ),
                       child: Text(
-                        '${selected.length} selected',
+                        s.selectedCount(selected.length),
                         style: AppType.sm(c).copyWith(color: Colors.white),
                       ),
                     ),
                 ],
               )
             else
-              Text('Who is it for?', style: AppType.h2(c)),
+              Text(s.whoIsItFor, style: AppType.h2(c)),
             const SizedBox(height: AppSpacing.s4),
             for (final u in state.recipients)
               Padding(
@@ -199,9 +202,9 @@ class _StepBody extends StatelessWidget {
         return ListView(
           padding: pad,
           children: [
-            Text('What for?', style: AppType.h2(c)),
+            Text(s.whatFor, style: AppType.h2(c)),
             const SizedBox(height: AppSpacing.s4),
-            Text('TAGS (OPTIONAL)', style: AppType.label(c)),
+            Text(s.tagsOptional, style: AppType.label(c)),
             const SizedBox(height: AppSpacing.s3),
             Wrap(
               spacing: AppSpacing.s2,
@@ -229,7 +232,7 @@ class _StepBody extends StatelessWidget {
               ),
             ],
             const SizedBox(height: AppSpacing.s5),
-            Text('COMMENT', style: AppType.label(c)),
+            Text(s.commentLabel, style: AppType.label(c)),
             const SizedBox(height: AppSpacing.s3),
             _CommentField(initial: state.comment, onChanged: cubit.setComment),
           ],
@@ -238,7 +241,7 @@ class _StepBody extends StatelessWidget {
         return ListView(
           padding: pad,
           children: [
-            Text('How much?', style: AppType.h2(c)),
+            Text(s.howMuch, style: AppType.h2(c)),
             const SizedBox(height: AppSpacing.s7),
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -260,7 +263,7 @@ class _StepBody extends StatelessWidget {
               ],
             ),
             const SizedBox(height: AppSpacing.s7),
-            Center(child: Text('TEMPLATES', style: AppType.label(c))),
+            Center(child: Text(s.templatesLabel, style: AppType.label(c))),
             const SizedBox(height: AppSpacing.s3),
             Wrap(
               alignment: WrapAlignment.center,
@@ -283,7 +286,7 @@ class _StepBody extends StatelessWidget {
         return ListView(
           padding: pad,
           children: [
-            Text('Review', style: AppType.h2(c)),
+            Text(s.review, style: AppType.h2(c)),
             const SizedBox(height: AppSpacing.s4),
             AppCard.flush(
               child: Column(
@@ -335,8 +338,8 @@ class _StepBody extends StatelessWidget {
               Center(
                 child: Text(
                   state.quotaReached
-                      ? 'No aura left today — resets tomorrow.'
-                      : '${state.remainingToday} of $auraDailyLimit aura left today',
+                      ? s.noAuraLeftToday
+                      : s.auraRemaining(state.remainingToday!, auraDailyLimit),
                   style: AppType.sm(c).copyWith(color: c.textFaint),
                 ),
               ),
@@ -457,6 +460,7 @@ class _MentorsOnlyView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final s = S.of(context);
     final c = Theme.of(context).extension<AppColors>()!;
     return Padding(
       padding: const EdgeInsets.all(AppSpacing.s6),
@@ -472,10 +476,10 @@ class _MentorsOnlyView extends StatelessWidget {
           const Spacer(),
           Icon(Icons.workspace_premium_outlined, size: 56, color: c.textFaint),
           const SizedBox(height: AppSpacing.s4),
-          Text('Mentors only', style: AppType.h2(c)),
+          Text(s.mentorsOnly, style: AppType.h2(c)),
           const SizedBox(height: AppSpacing.s2),
           Text(
-            'Only mentors can award Aura points.',
+            s.mentorsOnlyAward,
             textAlign: TextAlign.center,
             style: AppType.bodyDim(c),
           ),
@@ -507,6 +511,7 @@ class _CommentFieldState extends State<_CommentField> {
 
   @override
   Widget build(BuildContext context) {
+    final s = S.of(context);
     final c = Theme.of(context).extension<AppColors>()!;
     return TextField(
       controller: _ctrl,
@@ -516,7 +521,7 @@ class _CommentFieldState extends State<_CommentField> {
       decoration: InputDecoration(
         filled: true,
         fillColor: c.surface,
-        hintText: 'Add a comment…',
+        hintText: s.addCommentHint,
         hintStyle: AppType.bodyDim(c),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(AppSpacing.rSm),
@@ -534,16 +539,17 @@ class _AwardButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final s = S.of(context);
     final count = state.recipientIds.length;
     final pts = state.points;
     final sign = pts >= 0 ? '+' : '';
     final label = state.submitting
-        ? 'Awarding…'
+        ? s.awarding
         : state.quotaReached
-            ? 'Daily limit reached'
+            ? s.dailyLimitReached
             : count > 1
-                ? 'Award $sign$pts to $count people'
-                : 'Award $sign$pts';
+                ? s.awardToPeople(sign, pts, count)
+                : s.awardSimple(sign, pts);
     return _PrimaryButton(
       label: label,
       enabled: state.canContinue && !state.submitting && !state.quotaReached,
@@ -616,6 +622,7 @@ class _SuccessDialogState extends State<_SuccessDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final s = S.of(context);
     final c = Theme.of(context).extension<AppColors>()!;
     final points = widget.points;
     final count = widget.count;
@@ -651,7 +658,7 @@ class _SuccessDialogState extends State<_SuccessDialog> {
                 AuraPoints(points, size: 40),
                 const SizedBox(height: AppSpacing.s2),
                 Text(
-                  count > 1 ? 'Aura awarded to $count people!' : 'Aura awarded!',
+                  count > 1 ? s.awardedToPeople(count) : s.awarded,
                   style: AppType.h3(c),
                 ),
               ],

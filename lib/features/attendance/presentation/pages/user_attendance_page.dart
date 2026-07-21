@@ -12,6 +12,7 @@ import 'package:aura_app/core/widgets/app_card.dart';
 import 'package:aura_app/core/widgets/avatar.dart';
 import 'package:aura_app/features/attendance/domain/repositories/attendance_repository.dart';
 import 'package:aura_app/features/profile/domain/repositories/profile_repository.dart';
+import 'package:aura_app/l10n/generated/app_localizations.dart';
 
 class UserAttendancePage extends StatefulWidget {
   final String userId;
@@ -46,6 +47,7 @@ class _UserAttendancePageState extends State<UserAttendancePage> {
   }
 
   void _showDetails(BuildContext context, AppColors c, AttendanceRecord r) {
+    final s = S.of(context);
     showModalBottomSheet(
       context: context,
       backgroundColor: c.surface,
@@ -83,7 +85,7 @@ class _UserAttendancePageState extends State<UserAttendancePage> {
             const SizedBox(height: AppSpacing.s4),
             _DetailRow(
               icon: Icons.login,
-              label: 'Check-in',
+              label: s.checkIn,
               value: DateFormat('HH:mm').format(r.timestamp.toLocal()),
               c: c,
             ),
@@ -91,7 +93,7 @@ class _UserAttendancePageState extends State<UserAttendancePage> {
               const SizedBox(height: AppSpacing.s3),
               _DetailRow(
                 icon: Icons.restaurant,
-                label: 'Lunch start',
+                label: s.lunchStart,
                 value: DateFormat('HH:mm').format(r.lunchStart!.toLocal()),
                 c: c,
               ),
@@ -100,7 +102,7 @@ class _UserAttendancePageState extends State<UserAttendancePage> {
               const SizedBox(height: AppSpacing.s3),
               _DetailRow(
                 icon: Icons.restaurant_outlined,
-                label: 'Lunch end',
+                label: s.lunchEnd,
                 value: DateFormat('HH:mm').format(r.lunchEnd!.toLocal()),
                 c: c,
               ),
@@ -109,7 +111,7 @@ class _UserAttendancePageState extends State<UserAttendancePage> {
               const SizedBox(height: AppSpacing.s3),
               _DetailRow(
                 icon: Icons.logout,
-                label: 'Check-out',
+                label: s.checkOut,
                 value: r.checkOutNote!,
                 c: c,
               ),
@@ -122,6 +124,7 @@ class _UserAttendancePageState extends State<UserAttendancePage> {
 
   @override
   Widget build(BuildContext context) {
+    final s = S.of(context);
     final c = Theme.of(context).extension<AppColors>()!;
     return Scaffold(
       backgroundColor: c.bg,
@@ -133,6 +136,7 @@ class _UserAttendancePageState extends State<UserAttendancePage> {
             stream: _recordsStream,
             builder: (context, recordsSnap) {
               final allRecords = recordsSnap.data ?? [];
+              final isRu = Localizations.localeOf(context).languageCode == 'ru';
               final prefix =
                   '${_month.year}-${_month.month.toString().padLeft(2, '0')}';
               final monthRecords = {
@@ -171,7 +175,7 @@ class _UserAttendancePageState extends State<UserAttendancePage> {
                                     ring: true,
                                   ),
                                   const SizedBox(height: AppSpacing.s2),
-                                  Text(user.positionLabel, style: AppType.sm(c)),
+                                   Text(isRu ? user.role.labelRu : user.role.label, style: AppType.sm(c)),
                                   const SizedBox(height: AppSpacing.s6),
                                 ],
                               ),
@@ -242,9 +246,9 @@ class _UserAttendancePageState extends State<UserAttendancePage> {
                         Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            _LegendDot(color: c.success, label: 'Present', c: c),
+                            _LegendDot(color: c.success, label: s.present, c: c),
                             const SizedBox(width: AppSpacing.s4),
-                            _LegendDot(color: c.textFaint, label: 'Absent', c: c),
+                            _LegendDot(color: c.textFaint, label: s.absent, c: c),
                           ],
                         ),
                         const SizedBox(height: AppSpacing.s4),
@@ -257,7 +261,7 @@ class _UserAttendancePageState extends State<UserAttendancePage> {
                                   child: Column(
                                     crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
-                                      Text('Days present', style: AppType.sm(c)),
+                                      Text(s.daysPresent, style: AppType.sm(c)),
                                       const SizedBox(height: AppSpacing.s1),
                                       Text(
                                         '${monthRecords.length}',
@@ -270,7 +274,7 @@ class _UserAttendancePageState extends State<UserAttendancePage> {
                                   child: Column(
                                     crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
-                                      Text('Weekdays in month', style: AppType.sm(c)),
+                                      Text(s.weekdaysInMonth, style: AppType.sm(c)),
                                       const SizedBox(height: AppSpacing.s1),
                                       Text(
                                         '${_weekdaysInMonth(_month)}',
