@@ -5,6 +5,7 @@ import 'package:aura_app/core/theme/app_colors.dart';
 import 'package:aura_app/core/theme/app_gradients.dart';
 import 'package:aura_app/core/theme/app_spacing.dart';
 import 'package:aura_app/core/theme/app_typography.dart';
+import 'package:aura_app/l10n/generated/app_localizations.dart';
 import '../bloc/auth_cubit.dart';
 import '../bloc/auth_state.dart';
 
@@ -13,13 +14,14 @@ class LoginScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final s = S.of(context);
     final c = Theme.of(context).extension<AppColors>()!;
     return BlocConsumer<AuthCubit, AuthState>(
       listenWhen: (p, n) => p.error != n.error && n.error != null,
       listener: (context, state) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Sign in failed: ${state.error}'),
+            content: Text(s.signInFailed(state.error ?? '')),
             backgroundColor: c.heart,
           ),
         );
@@ -55,7 +57,7 @@ class LoginScreen extends StatelessWidget {
                           ),
                           const SizedBox(height: AppSpacing.s2),
                           Text(
-                            'Gamified feedback system',
+                            s.tagline,
                             style: AppType.body(c).copyWith(
                               color: Colors.white.withValues(alpha: 0.9),
                             ),
@@ -85,7 +87,7 @@ class LoginScreen extends StatelessWidget {
                                 width: 20,
                               ),
                         label: Text(
-                          loading ? 'Signing in...' : 'Continue with Google',
+                          loading ? s.signingIn : s.continueWithGoogle,
                           style: AppType.bodyStrong(c).copyWith(color: c.text),
                         ),
                         style: ElevatedButton.styleFrom(
@@ -99,8 +101,7 @@ class LoginScreen extends StatelessWidget {
                     ),
                     const SizedBox(height: AppSpacing.s6),
                     Text(
-                      'Give and receive aura points based on\n'
-                      'behavior, collaboration, and helpfulness',
+                      s.giveReceive,
                       textAlign: TextAlign.center,
                       style: AppType.sm(c).copyWith(
                         color: Colors.white.withValues(alpha: 0.85),

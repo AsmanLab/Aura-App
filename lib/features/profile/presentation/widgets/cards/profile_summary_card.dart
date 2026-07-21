@@ -1,3 +1,4 @@
+import 'package:aura_app/l10n/generated/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
@@ -19,6 +20,8 @@ class ProfileSummaryCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = Theme.of(context).extension<AppColors>()!;
+    final s = S.of(context);
+    final isRu = Localizations.localeOf(context).languageCode == 'ru';
     return AppCard(
       onTap: () => context.go('/aura/profile'),
       child: Column(
@@ -45,7 +48,7 @@ class ProfileSummaryCard extends StatelessWidget {
                       overflow: TextOverflow.ellipsis,
                     ),
                     Text(
-                      user.positionLabel,
+                      isRu ? user.role.labelRu : user.role.label,
                       style: AppType.sm(c),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
@@ -64,7 +67,7 @@ class ProfileSummaryCard extends StatelessWidget {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Total Aura', style: AppType.sm(c)),
+                  Text(s.totalAura, style: AppType.sm(c)),
                   const SizedBox(height: AppSpacing.s1),
                   AuraValue(user.totalAura, size: 40),
                 ],
@@ -72,7 +75,7 @@ class ProfileSummaryCard extends StatelessWidget {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
-                  Text('This week', style: AppType.sm(c)),
+                  Text(s.thisWeek, style: AppType.sm(c)),
                   const SizedBox(height: AppSpacing.s1),
                   AuraValue(
                     user.currentWeekAura,

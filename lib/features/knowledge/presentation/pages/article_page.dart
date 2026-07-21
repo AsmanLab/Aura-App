@@ -7,6 +7,7 @@ import 'package:aura_app/core/theme/app_spacing.dart';
 import 'package:aura_app/core/theme/app_typography.dart';
 import 'package:aura_app/core/domain/entities/knowledge_doc.dart';
 import 'package:aura_app/core/domain/repositories/knowledge_repository.dart';
+import 'package:aura_app/l10n/generated/app_localizations.dart';
 import 'doc_icon.dart';
 
 class ArticlePage extends StatelessWidget {
@@ -15,6 +16,7 @@ class ArticlePage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final s = S.of(context);
     final c = Theme.of(context).extension<AppColors>()!;
     return Scaffold(
       backgroundColor: c.bg,
@@ -28,7 +30,7 @@ class ArticlePage extends StatelessWidget {
         builder: (context, snap) {
           if (!snap.hasData) {
             if (snap.connectionState == ConnectionState.done) {
-              return Center(child: Text('Not found', style: AppType.body(c)));
+              return Center(child: Text(s.notFound, style: AppType.body(c)));
             }
             return const PageSkeleton();
           }
@@ -53,7 +55,7 @@ class ArticlePage extends StatelessWidget {
               ),
               const SizedBox(height: AppSpacing.s3),
               Text(doc.title, style: AppType.h2(c)),
-              Text('${doc.readTime} · Updated recently', style: AppType.sm(c)),
+              Text('${doc.readTime} · ${s.updatedRecently}', style: AppType.sm(c)),
               const SizedBox(height: AppSpacing.s5),
               for (final b in doc.body) _Block(block: b),
             ],

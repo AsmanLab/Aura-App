@@ -65,6 +65,7 @@ class _EditForm extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final s = S.of(context);
     final c = Theme.of(context).extension<AppColors>()!;
     final cubit = context.read<ProfileEditCubit>();
     final state = context.watch<ProfileEditCubit>().state;

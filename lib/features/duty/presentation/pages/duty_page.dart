@@ -136,7 +136,7 @@ class _DutyPageState extends State<DutyPage> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                'ON DUTY NOW',
+                                s.onDutyNow,
                                 style: AppType.label(c)
                                     .copyWith(color: c.success),
                               ),
@@ -273,7 +273,7 @@ class _DayCell extends StatelessWidget {
           color: day.isToday ? null : c.surface,
           borderRadius: BorderRadius.circular(AppSpacing.rSm),
           border: Border.all(
-            color: !day.isToday && isMine ? c.accentSolid : c.border,
+            color: day.isToday ? Colors.transparent : c.border,
           ),
         ),
         child: Column(
@@ -339,6 +339,11 @@ class _ChecklistRow extends StatelessWidget {
                       item.done ? TextDecoration.lineThrough : null,
                 ),
               ),
+            ),
+            IconButton(
+              onPressed: () => context.read<DutyCubit>().deleteChecklistItem(item.id),
+              icon: Icon(Icons.delete_outline_rounded, size: 18, color: c.textFaint),
+              tooltip: 'Delete',
             ),
           ],
         ),

@@ -10,6 +10,7 @@ import 'package:aura_app/core/domain/entities/knowledge_doc.dart';
 import 'package:aura_app/core/domain/repositories/knowledge_repository.dart';
 import 'package:aura_app/core/widgets/app_card.dart';
 import 'package:aura_app/core/widgets/section_label.dart';
+import 'package:aura_app/l10n/generated/app_localizations.dart';
 import 'doc_icon.dart';
 
 class KnowledgePage extends StatelessWidget {
@@ -17,6 +18,7 @@ class KnowledgePage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final s = S.of(context);
     final c = Theme.of(context).extension<AppColors>()!;
     return Scaffold(
       backgroundColor: c.bg,
@@ -48,12 +50,12 @@ class KnowledgePage extends StatelessWidget {
                       icon: Icon(Icons.arrow_back, color: c.text),
                     ),
                     const SizedBox(width: AppSpacing.s3),
-                    Text('Knowledge', style: AppType.h1(c)),
+                    Text(s.knowledge, style: AppType.h1(c)),
                   ],
                 ),
                 const SizedBox(height: AppSpacing.s4),
                 for (final d in featured) _FeaturedCard(doc: d),
-                const SectionLabel('All documents'),
+                SectionLabel(s.allDocuments),
                 AppCard.flush(
                   child: Column(
                     children: [
@@ -77,6 +79,7 @@ class _FeaturedCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final s = S.of(context);
     final c = Theme.of(context).extension<AppColors>()!;
     return AppCard(
       onTap: () => context.push('/aura/knowledge/article/${doc.id}'),
@@ -100,7 +103,7 @@ class _FeaturedCard extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'START HERE',
+                s.startHere,
                 style: AppType.label(c).copyWith(color: Colors.white70),
               ),
               const SizedBox(height: AppSpacing.s2),
@@ -110,7 +113,7 @@ class _FeaturedCard extends StatelessWidget {
               ),
               const SizedBox(height: AppSpacing.s2),
               Text(
-                'Read guide ›',
+                s.readGuide,
                 style: AppType.bodyStrong(c).copyWith(color: Colors.white),
               ),
             ],

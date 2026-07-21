@@ -10,6 +10,7 @@ import 'package:aura_app/core/widgets/app_card.dart';
 import 'package:aura_app/core/widgets/avatar.dart';
 import 'package:aura_app/core/widgets/hearts_row.dart';
 import 'package:aura_app/core/widgets/skeleton.dart';
+import 'package:aura_app/l10n/generated/app_localizations.dart';
 import '../bloc/hearts_cubit.dart';
 
 class HeartsPage extends StatelessWidget {
@@ -17,6 +18,7 @@ class HeartsPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final s = S.of(context);
     final c = Theme.of(context).extension<AppColors>()!;
     return Scaffold(
       backgroundColor: c.bg,
@@ -24,7 +26,7 @@ class HeartsPage extends StatelessWidget {
         backgroundColor: c.bg,
         foregroundColor: c.text,
         elevation: 0,
-        title: Text('Hearts', style: AppType.h3(c)),
+        title: Text(s.hearts, style: AppType.h3(c)),
       ),
       body: SafeArea(
         top: false,
@@ -71,14 +73,15 @@ class _RecipientList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final s = S.of(context);
     final c = Theme.of(context).extension<AppColors>()!;
     if (recipients.isEmpty) {
-      return Center(child: Text('No interns yet.', style: AppType.bodyDim(c)));
+      return Center(child: Text(s.noInternsYet, style: AppType.bodyDim(c)));
     }
     return ListView(
       padding: const EdgeInsets.all(AppSpacing.screenPad),
       children: [
-        Text('Whose hearts?', style: AppType.h2(c)),
+        Text(s.whoseHearts, style: AppType.h2(c)),
         const SizedBox(height: AppSpacing.s4),
         for (final u in recipients)
           Padding(
@@ -117,6 +120,7 @@ class _HeartEditor extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final s = S.of(context);
     final c = Theme.of(context).extension<AppColors>()!;
     final r = state.recipient!;
     final canAdd = r.hearts < 8 && !state.submitting;
@@ -130,7 +134,7 @@ class _HeartEditor extends StatelessWidget {
           children: [
             TextButton(
               onPressed: cubit.clearRecipient,
-              child: Text('Change', style: AppType.bodyStrong(c)),
+              child: Text(s.change, style: AppType.bodyStrong(c)),
             ),
           ],
         ),
@@ -154,7 +158,7 @@ class _HeartEditor extends StatelessWidget {
           ),
         ),
         const SizedBox(height: AppSpacing.s5),
-        Text('COMMENT', style: AppType.label(c)),
+        Text(s.commentLabel, style: AppType.label(c)),
         const SizedBox(height: AppSpacing.s2),
         TextField(
           style: AppType.body(c),
@@ -163,7 +167,7 @@ class _HeartEditor extends StatelessWidget {
           decoration: InputDecoration(
             filled: true,
             fillColor: c.surface,
-            hintText: 'Required to remove a heart…',
+            hintText: s.heartRemovalHint,
             hintStyle: AppType.bodyDim(c),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(AppSpacing.rSm),
@@ -176,7 +180,7 @@ class _HeartEditor extends StatelessWidget {
           children: [
             Expanded(
               child: _ActionButton(
-                label: state.submitting ? '…' : 'Remove −1',
+                label: state.submitting ? '…' : s.removeOne,
                 color: c.heart,
                 enabled: canRemove,
                 onTap: () => cubit.submit(-1),
@@ -185,7 +189,7 @@ class _HeartEditor extends StatelessWidget {
             const SizedBox(width: AppSpacing.s3),
             Expanded(
               child: _ActionButton(
-                label: state.submitting ? '…' : 'Add +1',
+                label: state.submitting ? '…' : s.addOne,
                 color: c.success,
                 enabled: canAdd,
                 onTap: () => cubit.submit(1),
@@ -195,7 +199,7 @@ class _HeartEditor extends StatelessWidget {
         ),
         if (r.hearts >= 8) ...[
           const SizedBox(height: AppSpacing.s3),
-          Text('Already at max hearts (8/8).', style: AppType.sm(c)),
+          Text(s.maxHeartsReached, style: AppType.sm(c)),
         ],
       ],
     );
@@ -245,6 +249,7 @@ class _MentorsOnly extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final s = S.of(context);
     final c = Theme.of(context).extension<AppColors>()!;
     return Center(
       child: Padding(
@@ -254,9 +259,9 @@ class _MentorsOnly extends StatelessWidget {
           children: [
             Icon(Icons.favorite_border, size: 56, color: c.textFaint),
             const SizedBox(height: AppSpacing.s4),
-            Text('Mentors only', style: AppType.h2(c)),
+            Text(s.mentorsOnly, style: AppType.h2(c)),
             const SizedBox(height: AppSpacing.s2),
-            Text('Only mentors can change hearts.',
+            Text(s.mentorsOnlyHearts,
                 textAlign: TextAlign.center, style: AppType.bodyDim(c)),
           ],
         ),

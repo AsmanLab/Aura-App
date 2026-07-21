@@ -10,6 +10,7 @@ import 'package:aura_app/core/widgets/heart_transaction_tile.dart';
 import 'package:aura_app/core/widgets/skeleton.dart';
 import 'package:aura_app/features/auth/domain/repositories/auth_repository.dart';
 import 'package:aura_app/features/profile/domain/repositories/profile_repository.dart';
+import 'package:aura_app/l10n/generated/app_localizations.dart';
 
 /// A user's heart-change history (added/removed).
 class HeartsHistoryPage extends StatelessWidget {
@@ -19,6 +20,7 @@ class HeartsHistoryPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final s = S.of(context);
     final c = Theme.of(context).extension<AppColors>()!;
     final uid = userId ?? sl<AuthRepository>().currentUser?.id;
     return Scaffold(
@@ -27,7 +29,7 @@ class HeartsHistoryPage extends StatelessWidget {
         backgroundColor: c.bg,
         foregroundColor: c.text,
         elevation: 0,
-        title: Text('Hearts history', style: AppType.h3(c)),
+        title: Text(s.heartsHistory, style: AppType.h3(c)),
       ),
       body: SafeArea(
         top: false,
@@ -42,7 +44,7 @@ class HeartsHistoryPage extends StatelessWidget {
             final txns = snap.data ?? const <HeartTransaction>[];
             if (txns.isEmpty) {
               return Center(
-                child: Text('No heart changes yet.',
+                child: Text(s.noHeartsYet,
                     style: AppType.bodyDim(c)),
               );
             }

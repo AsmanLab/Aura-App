@@ -11,6 +11,7 @@ import 'package:aura_app/core/theme/app_typography.dart';
 import 'package:aura_app/core/widgets/app_card.dart';
 import 'package:aura_app/core/widgets/avatar.dart';
 import 'package:aura_app/features/attendance/presentation/bloc/attendance_cubit.dart';
+import 'package:aura_app/l10n/generated/app_localizations.dart';
 
 class AttendancePage extends StatefulWidget {
   const AttendancePage({super.key});
@@ -27,17 +28,18 @@ class _AttendancePageState extends State<AttendancePage> {
     context.read<AttendanceCubit>().startTodayMonitoring();
   }
   void _showLunchDialog(BuildContext context, {required bool isStart}) {
+    final s = S.of(context);
     final controller = TextEditingController();
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: Text(isStart ? 'Перерыв на обед' : 'Вернулся с обеда'),
+        title: Text(isStart ? s.lunchBreakTitle : s.backFromLunchTitle),
         content: TextField(
           controller: controller,
-          decoration: const InputDecoration(hintText: 'Комментарий (необязательно)'),
+          decoration: InputDecoration(hintText: s.commentOptional),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Отмена')),
+          TextButton(onPressed: () => Navigator.pop(ctx), child: Text(s.cancel)),
           ElevatedButton(
             onPressed: () {
               final note = controller.text.trim();
@@ -48,7 +50,7 @@ class _AttendancePageState extends State<AttendancePage> {
               }
               Navigator.pop(ctx);
             },
-            child: Text(isStart ? 'Начать обед' : 'Закончить обед'),
+            child: Text(isStart ? s.startLunchBtn : s.endLunchBtn),
           ),
         ],
       ),
@@ -56,6 +58,7 @@ class _AttendancePageState extends State<AttendancePage> {
   }
 
   void _showDayDetails(BuildContext context, DateTime day, List<AttendanceRecord> allRecords) {
+    final s = S.of(context);
     final c = Theme.of(context).extension<AppColors>()!;
     final dateKey = DateFormat('yyyy-MM-dd').format(DateTime(day.year, day.month, day.day));
     final userRecords = allRecords.where((r) => r.dateKey == dateKey).toList();
@@ -65,29 +68,29 @@ class _AttendancePageState extends State<AttendancePage> {
       builder: (ctx) => AlertDialog(
         title: Text(DateFormat('MMM d, yyyy').format(day)),
         content: userRecords.isEmpty 
-          ? const Text('Нет записей за этот день')
+          ? Text(s.noRecordsForDay)
           : Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 for (final record in userRecords) ...[
-                  Text('Пришёл: ${DateFormat('HH:mm').format(record.timestamp.toLocal())}', 
+                  Text(s.arrivedAt(DateFormat('HH:mm').format(record.timestamp.toLocal())), 
                       style: AppType.bodyStrong(c)),
                   if (record.lunchStart != null)
-                    Text('Обед начал: ${DateFormat('HH:mm').format(record.lunchStart!.toLocal())}',
+                    Text(s.lunchStartedLabel(DateFormat('HH:mm').format(record.lunchStart!.toLocal())),
                         style: AppType.sm(c)),
                   if (record.lunchEnd != null)
-                    Text('Обед кончил: ${DateFormat('HH:mm').format(record.lunchEnd!.toLocal())}',
+                    Text(s.lunchEndedLabel(DateFormat('HH:mm').format(record.lunchEnd!.toLocal())),
                         style: AppType.sm(c)),
                   if (record.checkOutNote != null)
-                    Text('Ушёл: ${DateFormat('HH:mm').format(record.timestamp.toLocal())}',
+                    Text(s.leftLabel(DateFormat('HH:mm').format(record.timestamp.toLocal())),
                         style: AppType.bodyStrong(c)),
                   const SizedBox(height: AppSpacing.s2),
                 ],
               ],
             ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('OK')),
+          TextButton(onPressed: () => Navigator.pop(ctx), child: Text(s.ok)),
         ],
       ),
     );
@@ -95,11 +98,12 @@ class _AttendancePageState extends State<AttendancePage> {
 
   @override
   Widget build(BuildContext context) {
+    final s = S.of(context);
     final c = Theme.of(context).extension<AppColors>()!;
     return Scaffold(
       backgroundColor: c.bg,
       appBar: AppBar(
-        title: const Text('Attendance'),
+        title: Text(s.attendance),
         backgroundColor: c.surface,
         elevation: 0,
       ),
@@ -109,11 +113,11 @@ class _AttendancePageState extends State<AttendancePage> {
           return ListView(
             padding: const EdgeInsets.all(AppSpacing.screenPad),
             children: [
-              _buildCalendar(c, state.myRecords, state.todayStatuses),
+              _buildCalendar(context, c, state.myRecords, state.todayStatuses),
               const SizedBox(height: AppSpacing.s4),
               _buildActions(c, context, state),
               const SizedBox(height: AppSpacing.s4),
-              _buildTodayList(c, state.todayStatuses),
+              _buildTodayList(context, c, state.todayStatuses),
             ],
           );
         },
@@ -121,7 +125,8 @@ class _AttendancePageState extends State<AttendancePage> {
     );
   }
 
-  Widget _buildCalendar(AppColors c, List<AttendanceRecord> records, List<AttendanceStatus> statuses) {
+  Widget _buildCalendar(BuildContext context, AppColors c, List<AttendanceRecord> records, List<AttendanceStatus> statuses) {
+    final s = S.of(context);
     final now = DateTime.now();
     final firstOfMonth = DateTime(now.year, now.month, 1);
     final daysInMonth = DateUtils.getDaysInMonth(now.year, now.month);
@@ -130,7 +135,7 @@ class _AttendancePageState extends State<AttendancePage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Calendar', style: AppType.h3(c)),
+          Text(s.calendar, style: AppType.h3(c)),
           const SizedBox(height: AppSpacing.s3),
           GridView.builder(
             shrinkWrap: true,
@@ -174,6 +179,7 @@ class _AttendancePageState extends State<AttendancePage> {
   }
 
   Widget _buildActions(AppColors c, BuildContext context, AttendanceState state) {
+    final s = S.of(context);
     final todayKey = DateFormat('yyyy-MM-dd').format(DateTime.now().toUtc());
     final myTodayRecord = state.myRecords.cast<AttendanceRecord?>().firstWhere(
       (r) => r?.dateKey == todayKey,
@@ -199,9 +205,9 @@ class _AttendancePageState extends State<AttendancePage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Attendance marked', style: AppType.bodyStrong(c)),
+                  Text(s.attendanceMarked, style: AppType.bodyStrong(c)),
                   Text(
-                    'Arrived ${DateFormat('HH:mm').format(myTodayRecord.timestamp.toLocal())}',
+                    s.arrivedAtTime(DateFormat('HH:mm').format(myTodayRecord.timestamp.toLocal())),
                     style: AppType.sm(c),
                   ),
                 ],
@@ -224,7 +230,7 @@ class _AttendancePageState extends State<AttendancePage> {
                   : () => context.read<AttendanceCubit>().checkIn(),
               loading: state.isCheckingIn,
               icon: Icons.login_rounded,
-              label: 'Mark attendance',
+              label: s.markAttendance,
               gradient: true,
               c: c,
             ),
@@ -236,7 +242,7 @@ class _AttendancePageState extends State<AttendancePage> {
                 Icon(Icons.check_circle_rounded, color: c.success, size: 18),
                 const SizedBox(width: AppSpacing.s2),
                 Text(
-                  'Arrived ${DateFormat('HH:mm').format(myTodayRecord.timestamp.toLocal())}',
+                  s.arrivedAtTime(DateFormat('HH:mm').format(myTodayRecord.timestamp.toLocal())),
                   style: AppType.bodyStrong(c).copyWith(color: c.success),
                 ),
               ],
@@ -246,7 +252,7 @@ class _AttendancePageState extends State<AttendancePage> {
               _AttendanceButton(
                 onTap: () => _showLunchDialog(context, isStart: true),
                 icon: Icons.free_breakfast_rounded,
-                label: 'Start lunch break',
+                label: s.startLunchBreak,
                 c: c,
               ),
             ],
@@ -255,7 +261,7 @@ class _AttendancePageState extends State<AttendancePage> {
               _AttendanceButton(
                 onTap: () => _showLunchDialog(context, isStart: false),
                 icon: Icons.keyboard_return_rounded,
-                label: 'Back from lunch',
+                label: s.backFromLunch,
                 c: c,
               ),
             ],
@@ -267,7 +273,7 @@ class _AttendancePageState extends State<AttendancePage> {
                     : () => context.read<AttendanceCubit>().checkOut('Checked out'),
                 loading: state.isCheckingOut,
                 icon: Icons.logout_rounded,
-                label: 'Check out',
+                label: s.checkOut,
                 c: c,
               ),
             ],
@@ -277,7 +283,8 @@ class _AttendancePageState extends State<AttendancePage> {
     );
   }
 
-  Widget _buildTodayList(AppColors c, List<AttendanceStatus> statuses) {
+  Widget _buildTodayList(BuildContext context, AppColors c, List<AttendanceStatus> statuses) {
+    final s = S.of(context);
     final present = statuses.where((s) => s.record != null).length;
     return AppCard.flush(
       child: Column(
@@ -286,15 +293,15 @@ class _AttendancePageState extends State<AttendancePage> {
             padding: const EdgeInsets.all(AppSpacing.s4),
             child: Row(
               children: [
-                Expanded(child: Text('$present/${statuses.length} arrived today', style: AppType.bodyStrong(c))),
+                Expanded(child: Text(s.arrivedToday(present, statuses.length), style: AppType.bodyStrong(c))),
                 Text(DateFormat('MMM d').format(DateTime.now()), style: AppType.sm(c)),
               ],
             ),
           ),
           if (statuses.isEmpty)
-            const Padding(
-              padding: EdgeInsets.all(AppSpacing.s4),
-              child: Text('No one has checked in yet'),
+            Padding(
+              padding: const EdgeInsets.all(AppSpacing.s4),
+              child: Text(s.noCheckinsYet),
             )
           else
             for (var i = 0; i < statuses.length; i++)
@@ -312,22 +319,23 @@ class _StatusRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final s = S.of(context);
     final c = Theme.of(context).extension<AppColors>()!;
     final record = status.record;
 
     String label;
     Color chipColor;
     if (record == null) {
-      label = 'Не пришёл';
+      label = s.didNotArrive;
       chipColor = c.textDim;
     } else if (record.lunchStart != null && record.lunchEnd == null) {
-      label = 'На обеде';
+      label = s.onLunch;
       chipColor = c.accentSolid;
     } else if (record.checkOutNote != null) {
-      label = 'Ушёл';
+      label = s.statusLeft;
       chipColor = c.textDim;
     } else {
-      label = 'Пришёл';
+      label = s.statusArrived;
       chipColor = c.success;
     }
 
@@ -348,7 +356,7 @@ class _StatusRow extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(status.user.displayName, style: AppType.h3(c)),
-                Text(record != null ? 'Пришёл в ${DateFormat('HH:mm').format(record.timestamp.toLocal())}' : 'Не пришёл', style: AppType.sm(c)),
+                Text(record != null ? s.arrivedAtTime(DateFormat('HH:mm').format(record.timestamp.toLocal())) : s.didNotArrive, style: AppType.sm(c)),
               ],
             ),
           ),
