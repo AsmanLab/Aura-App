@@ -11,16 +11,8 @@ import 'package:aura_app/core/widgets/app_card.dart';
 import 'package:aura_app/core/widgets/avatar.dart';
 import 'package:aura_app/core/widgets/skeleton.dart';
 import 'package:aura_app/features/auth/domain/repositories/auth_repository.dart';
-import 'package:aura_app/features/leaderboard/data/datasources/leaderboard_remote_data_source.dart';
 import 'package:aura_app/features/profile/domain/repositories/profile_repository.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-
-const _demoMode = bool.fromEnvironment('DEMO', defaultValue: true);
-
-class _DemoUsers {
-  static List<UserModel> get list =>
-      LeaderboardRemoteDataSourceImpl.demoUsersSnapshot;
-}
 
 class AdminUsersPage extends StatelessWidget {
   const AdminUsersPage({super.key});
@@ -30,7 +22,7 @@ class AdminUsersPage extends StatelessWidget {
     final c = Theme.of(context).extension<AppColors>()!;
     final s = S.of(context);
     final authMe = sl<AuthRepository>().currentUser;
-    final uid = authMe?.id ?? (_demoMode ? 'demo-user' : null);
+    final uid = authMe?.id;
 
     if (uid == null) {
       return Scaffold(
@@ -48,9 +40,7 @@ class AdminUsersPage extends StatelessWidget {
         title: Text(s.users),
       ),
       body: StreamBuilder<UserModel?>(
-        stream: _demoMode
-            ? Stream.value(_DemoUsers.list.first)
-            : sl<ProfileRepository>().watchUser(uid),
+        stream: sl<ProfileRepository>().watchUser(uid),
         builder: (context, meSnap) {
           final me = meSnap.data;
           final myRole = me?.role ?? Role.unknown;
@@ -59,15 +49,13 @@ class AdminUsersPage extends StatelessWidget {
           }
 
           return StreamBuilder<List<UserModel>>(
-            stream: _demoMode
-                ? Stream.value(_DemoUsers.list)
-                : FirebaseFirestore.instance
-                    .collection('users')
-                    .orderBy('createdAt', descending: true)
-                    .snapshots()
-                    .map((s) => s.docs
-                        .map((d) => UserModel.fromMap(d.data(), d.id))
-                        .toList()),
+            stream: FirebaseFirestore.instance
+                .collection('users')
+                .orderBy('createdAt', descending: true)
+                .snapshots()
+                .map((s) => s.docs
+                    .map((d) => UserModel.fromMap(d.data(), d.id))
+                    .toList()),
             builder: (context, snap) {
               if (snap.connectionState == ConnectionState.waiting) {
                 return const PageSkeleton();
@@ -130,17 +118,6 @@ class _UserTileState extends State<_UserTile> {
       );
       return;
     }
-    if (_demoMode) {
-      final updated = LeaderboardRemoteDataSourceImpl.demoUsersSnapshot
-          .map((u) => u.id == widget.user.id ? u.copyWith(role: _role) : u)
-          .toList();
-      LeaderboardRemoteDataSourceImpl.updateDemoUsers(updated);
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(s.savedFor(widget.user.displayName))),
-      );
-      return;
-    }
     try {
       await FirebaseFirestore.instance
           .collection('users')
@@ -174,7 +151,6 @@ class _UserTileState extends State<_UserTile> {
                 photoUrl: widget.user.photoURL,
                 size: 44,
                 ring: widget.user.role == Role.unknown,
-                ringColor: widget.user.role == Role.unknown ? c.heart : null,
               ),
               const SizedBox(width: AppSpacing.s3),
               Expanded(
