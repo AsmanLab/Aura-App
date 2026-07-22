@@ -1,7 +1,9 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import 'package:aura_app/core/domain/entities/duty_day.dart';
 import 'package:aura_app/core/domain/repositories/duty_repository.dart';
+import 'package:aura_app/core/models/user_model.dart';
 
 class DutyState {
   final List<DutyDay> week;
@@ -43,9 +45,38 @@ class DutyCubit extends Cubit<DutyState> {
   }
 
   Future<void> _load() async {
-    final week = await _repo.getWeek();
     final checklist = await _repo.getChecklist();
-    emit(DutyState(week: week, checklist: checklist, loading: false));
+    final now = DateTime.now();
+    final currentDay = now.weekday; // 1=Mon, 5=Fri
+    final startOfWeek = now.subtract(Duration(days: currentDay - 1));
+
+    try {
+      final snap = await FirebaseFirestore.instance
+          .collection('users')
+          .where('role', isEqualTo: 'intern')
+          .get();
+      final interns = snap.docs
+          .map((d) => UserModel.fromMap(d.data(), d.id))
+          .toList();
+      interns.sort((a, b) => a.displayName.compareTo(b.displayName));
+
+      final dayNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'];
+      final week = <DutyDay>[];
+      for (int i = 0; i < 5; i++) {
+        final d = startOfWeek.add(Duration(days: i));
+        final personId = i < interns.length ? interns[i].id : '';
+        week.add(DutyDay(
+          day: dayNames[i],
+          date: d.day.toString().padLeft(2, '0'),
+          personId: personId,
+          isToday: i == currentDay - 1,
+        ));
+      }
+      emit(DutyState(week: week, checklist: checklist, loading: false));
+    } on FirebaseException catch (_) {
+      final week = await _repo.getWeek();
+      emit(DutyState(week: week, checklist: checklist, loading: false));
+    }
   }
 
   void toggle(String id) {

@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 import 'enums.dart';
+import '../domain/entities/person.dart';
 
 class UserModel {
   final String id;
@@ -97,6 +98,20 @@ class UserModel {
       'schemaVersion': schemaVersion,
       'metadata': metadata,
     };
+  }
+
+  Person toPerson({bool isYou = false}) {
+    return Person(
+      id: id,
+      name: displayName,
+      position: positionLabel,
+      role: role,
+      aura: totalAura,
+      hearts: hearts,
+      isYou: isYou,
+      trialStart: null,
+      trialEnd: null,
+    );
   }
 
   UserModel copyWith({
