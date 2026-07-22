@@ -6,6 +6,7 @@ class NotifPref extends Equatable {
   final String label;
   final String labelRu;
   final String description;
+  final String descriptionRu;
   final bool enabled;
 
   const NotifPref({
@@ -14,6 +15,7 @@ class NotifPref extends Equatable {
     required this.label,
     required this.labelRu,
     required this.description,
+    required this.descriptionRu,
     this.enabled = true,
   });
 
@@ -23,9 +25,10 @@ class NotifPref extends Equatable {
     label: label,
     labelRu: labelRu,
     description: description,
+    descriptionRu: descriptionRu,
     enabled: enabled ?? this.enabled,
   );
 
   @override
-  List<Object?> get props => [id, icon, label, labelRu, description, enabled];
+  List<Object?> get props => [id, icon, label, labelRu, description, descriptionRu, enabled];
 }
