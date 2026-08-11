@@ -1,16 +1,16 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:aura_app/core/widgets/skeleton.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
-import 'package:aura_app/core/di/injection.dart';
+import 'package:aura_app/core/models/user_model.dart';
 import 'package:aura_app/core/theme/app_colors.dart';
 import 'package:aura_app/core/theme/app_spacing.dart';
 import 'package:aura_app/core/theme/app_typography.dart';
 import 'package:aura_app/core/domain/entities/duty_day.dart';
 import 'package:aura_app/core/domain/entities/person.dart';
-import 'package:aura_app/core/domain/repositories/people_repository.dart';
 import 'package:aura_app/core/widgets/app_card.dart';
 import 'package:aura_app/core/widgets/avatar.dart';
 import 'package:aura_app/core/widgets/section_label.dart';
@@ -82,9 +82,18 @@ class _DutyPageState extends State<DutyPage> {
       body: SafeArea(
         bottom: false,
         child: FutureBuilder<Map<String, Person>>(
-          future: sl<PeopleRepository>().getPeople().then(
-                (ps) => {for (final p in ps) p.id: p},
-              ),
+          future: FirebaseFirestore.instance
+              .collection('users')
+              .where('role', isEqualTo: 'intern')
+              .get()
+              .then((snap) {
+            final byId = <String, Person>{};
+            for (final doc in snap.docs) {
+              final user = UserModel.fromMap(doc.data(), doc.id);
+              byId[user.id] = user.toPerson();
+            }
+            return byId;
+          }),
           builder: (context, peopleSnap) {
             if (!peopleSnap.hasData) {
               return const PageSkeleton();
@@ -260,7 +269,6 @@ class _DayCell extends StatelessWidget {
   Widget build(BuildContext context) {
     final c = Theme.of(context).extension<AppColors>()!;
     final person = byId[day.personId];
-    final isMine = person?.isYou ?? false;
     return GestureDetector(
       onTap: () => context.push('/aura/profile/${day.personId}'),
       child: Container(
