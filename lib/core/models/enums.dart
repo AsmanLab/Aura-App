@@ -17,6 +17,7 @@ enum LbFilter {
 /// Role accents + capabilities. Colors are theme-independent (constants).
 /// See commands/05_data_models.md §5.1.
 enum Role {
+  unknown('Unknown', 'Неизвестно', Color(0xFF94A3B8)),
   intern('Intern', 'Стажёр', Color(0xFF22D3EE)),
   fullTime('Full-time', 'Сотрудник', Color(0xFF818CF8)),
   mentor('Mentor', 'Ментор', Color(0xFFC084FC)),
@@ -29,8 +30,8 @@ enum Role {
   final Color color;
 
   Color get tint => color.withValues(alpha: 0.13);
-  bool get canAward => this != Role.intern;
-  bool get hasTrial => this == Role.intern;
+  bool get canAward => this == Role.admin || this == Role.mentor;
+  bool get hasTrial => this == Role.intern || this == Role.unknown;
 }
 
 /// The five Aura categories. Icon is a Material glyph approximating the
