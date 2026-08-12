@@ -1,11 +1,10 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:aura_app/core/widgets/skeleton.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
-import 'package:aura_app/core/models/user_model.dart';
+import 'package:aura_app/core/di/injection.dart';
 import 'package:aura_app/core/theme/app_colors.dart';
 import 'package:aura_app/core/theme/app_spacing.dart';
 import 'package:aura_app/core/theme/app_typography.dart';
@@ -26,6 +25,7 @@ class DutyPage extends StatefulWidget {
 
 class _DutyPageState extends State<DutyPage> {
   late final TextEditingController _noteController;
+  late final Future<Map<String, Person>> _peopleFuture;
 
   @override
   void initState() {
@@ -33,6 +33,9 @@ class _DutyPageState extends State<DutyPage> {
     _noteController = TextEditingController(
       text: context.read<DutyCubit>().state.shiftNote,
     );
+    _peopleFuture = sl<PeopleRepository>().getPeople().then(
+          (ps) => {for (final p in ps) p.id: p},
+        );
   }
 
   @override
@@ -82,18 +85,7 @@ class _DutyPageState extends State<DutyPage> {
       body: SafeArea(
         bottom: false,
         child: FutureBuilder<Map<String, Person>>(
-          future: FirebaseFirestore.instance
-              .collection('users')
-              .where('role', isEqualTo: 'intern')
-              .get()
-              .then((snap) {
-            final byId = <String, Person>{};
-            for (final doc in snap.docs) {
-              final user = UserModel.fromMap(doc.data(), doc.id);
-              byId[user.id] = user.toPerson();
-            }
-            return byId;
-          }),
+          future: _peopleFuture,
           builder: (context, peopleSnap) {
             if (!peopleSnap.hasData) {
               return const PageSkeleton();
@@ -103,6 +95,32 @@ class _DutyPageState extends State<DutyPage> {
               builder: (context, state) {
                 if (state.loading) {
                   return const PageSkeleton();
+                }
+                if (state.error != null) {
+                  return Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(AppSpacing.s6),
+                      child: Text(
+                        'Error: ${state.error}',
+                        textAlign: TextAlign.center,
+                        style: AppType.bodyDim(c),
+                      ),
+                    ),
+                  );
+                }
+                if (state.week.isEmpty) {
+                  return Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(AppSpacing.s6),
+                      child: Text(
+                        'Duty schedule is empty.\n'
+                        'Add a "duty_week" collection in Firestore with documents:\n'
+                        '{ day, date, month, year, personId }',
+                        textAlign: TextAlign.center,
+                        style: AppType.bodyDim(c),
+                      ),
+                    ),
+                  );
                 }
                 final onDuty = state.week.firstWhere(
                   (d) => d.isToday,
@@ -269,6 +287,10 @@ class _DayCell extends StatelessWidget {
   Widget build(BuildContext context) {
     final c = Theme.of(context).extension<AppColors>()!;
     final person = byId[day.personId];
+<<<<<<< HEAD
+=======
+    final _isMine = person?.isYou ?? false;
+>>>>>>> 3d0b50f (feat(duty): replace seed data with Firestore auto-assignment of interns)
     return GestureDetector(
       onTap: () => context.push('/aura/profile/${day.personId}'),
       child: Container(

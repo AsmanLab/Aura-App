@@ -2,10 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:aura_app/core/widgets/skeleton.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
-import 'dart:async';
 
-import 'package:aura_app/core/di/injection.dart';
-import 'package:aura_app/core/domain/repositories/settings_repository.dart';
 import 'package:aura_app/core/models/user_model.dart';
 import 'package:aura_app/core/models/enums.dart';
 import 'package:aura_app/core/theme/app_colors.dart';
@@ -27,32 +24,10 @@ class LeaderboardPage extends StatefulWidget {
 }
 
 class _LeaderboardPageState extends State<LeaderboardPage> {
-  StreamSubscription<int?>? _highlightSub;
-  Color? _highlightColor;
-
-  @override
-  void initState() {
-    super.initState();
-    _highlightSub =
-        sl<SettingsRepository>().watchLeaderboardHighlightColor().listen((v) {
-      if (!mounted) return;
-      setState(() {
-        _highlightColor = v == null ? null : Color(v);
-      });
-    });
-  }
-
-  @override
-  void dispose() {
-    _highlightSub?.cancel();
-    super.dispose();
-  }
-
   @override
   Widget build(BuildContext context) {
     final s = S.of(context);
     final c = Theme.of(context).extension<AppColors>()!;
-    final highlight = _highlightColor;
     return Scaffold(
       backgroundColor: c.bg,
       body: SafeArea(
@@ -99,7 +74,7 @@ class _LeaderboardPageState extends State<LeaderboardPage> {
                               style: AppType.bodyDim(c)),
                         ),
                       ),
-                    if (top3.length == 3) _Podium(top3: top3, highlight: highlight, meId: meId),
+                    if (top3.length == 3) _Podium(top3: top3, meId: meId),
                     const SizedBox(height: AppSpacing.s5),
                     AppCard.flush(
                       child: Column(
@@ -110,8 +85,6 @@ class _LeaderboardPageState extends State<LeaderboardPage> {
                           user: rest[i].user,
                           score: rest[i].score,
                           divider: i != rest.length - 1,
-                          highlight: highlight,
-                          meId: meId,
                         ),
                         ],
                       ),
@@ -127,7 +100,6 @@ class _LeaderboardPageState extends State<LeaderboardPage> {
                     rank: meIndex + 1,
                     user: entries[meIndex].user,
                     score: entries[meIndex].score,
-                    highlight: highlight,
                   ),
                   ),
               ],
@@ -145,9 +117,8 @@ void _openProfile(BuildContext context, UserModel user) {
 
 class _Podium extends StatelessWidget {
   final List<LeaderboardEntry> top3;
-  final Color? highlight;
   final String meId;
-  const _Podium({required this.top3, this.highlight, required this.meId});
+  const _Podium({required this.top3, required this.meId});
 
   @override
   Widget build(BuildContext context) {
@@ -158,7 +129,6 @@ class _Podium extends StatelessWidget {
             rank: rank,
             height: h,
             score: top3[i].score,
-            highlight: highlight,
             meId: meId,
           ),
         );
@@ -178,14 +148,12 @@ class _Plinth extends StatelessWidget {
   final int rank;
   final double height;
   final int score;
-  final Color? highlight;
   final String meId;
   const _Plinth({
     required this.user,
     required this.rank,
     required this.height,
     required this.score,
-    this.highlight,
     required this.meId,
   });
 
@@ -207,7 +175,6 @@ class _Plinth extends StatelessWidget {
             photoUrl: user.photoURL,
             size: rank == 1 ? 64 : 52,
             ring: true,
-            ringColor: user.id == meId ? highlight : null,
           ),
           const SizedBox(height: AppSpacing.s2),
           Text(
@@ -246,15 +213,11 @@ class _RestRow extends StatelessWidget {
   final UserModel user;
   final int score;
   final bool divider;
-  final Color? highlight;
-  final String meId;
   const _RestRow({
     required this.rank,
     required this.user,
     required this.score,
     required this.divider,
-    this.highlight,
-    required this.meId,
   });
 
   @override
@@ -269,9 +232,6 @@ class _RestRow extends StatelessWidget {
         decoration: BoxDecoration(
           border: Border(
             bottom: divider ? BorderSide(color: c.border) : BorderSide.none,
-            left: (highlight != null && user.id == meId)
-                ? BorderSide(color: highlight!, width: 3)
-                : BorderSide.none,
           ),
         ),
         child: Row(
@@ -312,28 +272,20 @@ class _YourRank extends StatelessWidget {
   final int rank;
   final UserModel user;
   final int score;
-  final Color? highlight;
   const _YourRank({
     required this.rank,
     required this.user,
     required this.score,
-    this.highlight,
   });
 
   @override
   Widget build(BuildContext context) {
     final s = S.of(context);
     final c = Theme.of(context).extension<AppColors>()!;
-    final highlightBorder = highlight != null
-        ? Border(
-            left: BorderSide(color: highlight!, width: 3),
-          )
-        : null;
     return AppCard(
       color: c.surface2,
       padding: const EdgeInsets.all(AppSpacing.s4),
       onTap: () => context.push('/aura/profile/${user.id}'),
-      border: highlightBorder,
       child: Row(
         children: [
           SizedBox(
@@ -347,7 +299,6 @@ class _YourRank extends StatelessWidget {
             photoUrl: user.photoURL,
             size: 40,
             ring: true,
-            ringColor: highlight,
           ),
           const SizedBox(width: AppSpacing.s3),
           Expanded(

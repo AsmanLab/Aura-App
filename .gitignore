@@ -44,6 +44,18 @@ app.*.map.json
 /android/app/profile
 /android/app/release
 
-# Firebase admin / seed scripts (never commit secrets)
+# Firebase / Google Services
+**/google-services.json
+**/GoogleService-Info.plist
+**/*-Info.plist
 tools/seed/serviceAccountKey.json
 tools/seed/node_modules/
+
+# Build logs
+build_log*.txt
+
+# Nested project (duplicate)
+Aura-App/
+
+# Build output
+build/
