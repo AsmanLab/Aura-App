@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:aura_app/core/widgets/skeleton.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:aura_app/core/models/user_model.dart';
 import 'package:aura_app/core/models/enums.dart';
+import 'package:aura_app/core/widgets/skeleton.dart';
 import 'package:aura_app/core/theme/app_colors.dart';
 import 'package:aura_app/core/theme/app_spacing.dart';
 import 'package:aura_app/core/theme/app_typography.dart';
