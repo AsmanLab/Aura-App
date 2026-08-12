@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:aura_app/core/widgets/skeleton.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
 
 import 'package:aura_app/core/di/injection.dart';
 import 'package:aura_app/core/theme/app_colors.dart';
