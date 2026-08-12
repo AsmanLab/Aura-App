@@ -10,6 +10,7 @@ import 'package:aura_app/core/theme/app_spacing.dart';
 import 'package:aura_app/core/theme/app_typography.dart';
 import 'package:aura_app/core/domain/entities/duty_day.dart';
 import 'package:aura_app/core/domain/entities/person.dart';
+import 'package:aura_app/core/domain/repositories/people_repository.dart';
 import 'package:aura_app/core/widgets/app_card.dart';
 import 'package:aura_app/core/widgets/avatar.dart';
 import 'package:aura_app/core/widgets/section_label.dart';
@@ -287,10 +288,6 @@ class _DayCell extends StatelessWidget {
   Widget build(BuildContext context) {
     final c = Theme.of(context).extension<AppColors>()!;
     final person = byId[day.personId];
-<<<<<<< HEAD
-=======
-    final _isMine = person?.isYou ?? false;
->>>>>>> 3d0b50f (feat(duty): replace seed data with Firestore auto-assignment of interns)
     return GestureDetector(
       onTap: () => context.push('/aura/profile/${day.personId}'),
       child: Container(

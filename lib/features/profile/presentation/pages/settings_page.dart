@@ -16,6 +16,7 @@ import 'package:aura_app/core/widgets/segmented_control.dart';
 import 'package:aura_app/core/settings/locale_cubit.dart';
 import 'package:aura_app/core/settings/theme_cubit.dart';
 import 'package:aura_app/features/auth/domain/repositories/auth_repository.dart';
+import 'package:aura_app/l10n/generated/app_localizations.dart';
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});

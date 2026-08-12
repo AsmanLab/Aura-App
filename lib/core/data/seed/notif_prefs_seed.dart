@@ -10,6 +10,7 @@ class NotifPrefsSeed {
       label: 'Duty',
       labelRu: 'Дежурство',
       description: 'Shift reminders and handoffs.',
+      descriptionRu: 'Напоминания о сменах и передачи дежурства.',
       enabled: true,
     ),
     NotifPref(
@@ -18,6 +19,7 @@ class NotifPrefsSeed {
       label: 'Aura',
       labelRu: 'Aura',
       description: 'When someone awards you points.',
+      descriptionRu: 'Когда кто-то начисляет вам баллы.',
       enabled: true,
     ),
     NotifPref(
@@ -26,6 +28,7 @@ class NotifPrefsSeed {
       label: 'Hearts',
       labelRu: 'Сердца',
       description: 'Heart changes and trial status.',
+      descriptionRu: 'Изменения сердец и статус испытательного срока.',
       enabled: true,
     ),
     NotifPref(
@@ -34,6 +37,7 @@ class NotifPrefsSeed {
       label: 'Milestones',
       labelRu: 'Этапы',
       description: 'Rank changes and achievements.',
+      descriptionRu: 'Изменения ранга и достижения.',
       enabled: true,
     ),
     NotifPref(
@@ -42,6 +46,7 @@ class NotifPrefsSeed {
       label: 'Announcements',
       labelRu: 'Объявления',
       description: 'Team-wide news.',
+      descriptionRu: 'Новости команды.',
       enabled: false,
     ),
   ];
