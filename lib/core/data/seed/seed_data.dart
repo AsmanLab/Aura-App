@@ -308,13 +308,14 @@ class SeedData {
     ),
   ];
 
-  static const List<NotifPref> notifPrefs = [
+  static List<NotifPref> notifPrefs = [
     NotifPref(
       id: 'duty',
       icon: 'shield',
       label: 'Duty',
       labelRu: 'Дежурство',
       description: 'Shift reminders and handoffs.',
+      descriptionRu: 'Напоминания о сменах и передачи.',
       enabled: true,
     ),
     NotifPref(
@@ -323,6 +324,7 @@ class SeedData {
       label: 'Aura',
       labelRu: 'Aura',
       description: 'When someone awards you points.',
+      descriptionRu: 'Когда вам начисляют очки.',
       enabled: true,
     ),
     NotifPref(
@@ -331,6 +333,7 @@ class SeedData {
       label: 'Hearts',
       labelRu: 'Сердца',
       description: 'Heart changes and trial status.',
+      descriptionRu: 'Изменения сердец и статус испытания.',
       enabled: true,
     ),
     NotifPref(
@@ -339,6 +342,7 @@ class SeedData {
       label: 'Milestones',
       labelRu: 'Этапы',
       description: 'Rank changes and achievements.',
+      descriptionRu: 'Изменения ранга и достижения.',
       enabled: true,
     ),
     NotifPref(
@@ -347,6 +351,7 @@ class SeedData {
       label: 'Announcements',
       labelRu: 'Объявления',
       description: 'Team-wide news.',
+      descriptionRu: 'Новости команды.',
       enabled: false,
     ),
   ];

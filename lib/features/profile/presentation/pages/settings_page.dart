@@ -27,6 +27,9 @@ class _SettingsPageState extends State<SettingsPage> {
   List<NotifPref> _prefs = [];
   bool _quietHours = true;
   bool _loaded = false;
+  TimeOfDay _quietStart = const TimeOfDay(hour: 22, minute: 0);
+  TimeOfDay _quietEnd = const TimeOfDay(hour: 9, minute: 0);
+  Color _highlightColor = const Color(0xFF22D3EE);
 
   @override
   void initState() {
@@ -38,6 +41,36 @@ class _SettingsPageState extends State<SettingsPage> {
         _loaded = true;
       });
     });
+    sl<SettingsRepository>().getLeaderboardHighlightColor().then((value) {
+      if (!mounted || value == null) return;
+      setState(() {
+        _highlightColor = Color(value);
+      });
+    });
+  }
+  void _pickTime({required bool isStart}) async {
+    final s = S.of(context);
+    final initial = isStart ? _quietStart : _quietEnd;
+    final picked = await showTimePicker(
+      context: context,
+      initialTime: initial,
+      helpText: isStart ? 'Start time' : 'End time',
+    );
+    if (picked == null || !mounted) return;
+    setState(() {
+      if (isStart) {
+        _quietStart = picked;
+      } else {
+        _quietEnd = picked;
+      }
+    });
+  }
+
+  String _formatTime(TimeOfDay t) {
+    final hour = t.hour == 0 ? 12 : t.hour > 12 ? t.hour - 12 : t.hour;
+    final period = t.hour < 12 ? 'AM' : 'PM';
+    final minute = t.minute.toString().padLeft(2, '0');
+    return '$hour:$minute $period';
   }
 
   Future<void> _logout() async {
@@ -140,15 +173,62 @@ class _SettingsPageState extends State<SettingsPage> {
                         _NotifRow(
                           pref: _prefs[i],
                           ru: context.watch<LocaleCubit>().isRu,
-                          onChanged: (v) => setState(
-                            () => _prefs[i] = _prefs[i].copyWith(enabled: v),
-                          ),
+                          onChanged: (v) async {
+                            setState(
+                              () => _prefs[i] = _prefs[i].copyWith(enabled: v),
+                            );
+                            await sl<SettingsRepository>()
+                                .setNotifPref(_prefs[i].id, v);
+                          },
                         ),
                       ],
                     ],
                   ),
                 ),
-                const SectionLabel('Quiet hours'),
+                const SectionLabel('Leaderboard'),
+                AppCard(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Highlight color', style: AppType.body(c)),
+                      const SizedBox(height: AppSpacing.s3),
+                      Wrap(
+                        spacing: AppSpacing.s3,
+                        runSpacing: AppSpacing.s3,
+                        children: [
+                          for (final color in const [
+                            Color(0xFF22D3EE),
+                            Color(0xFF34D399),
+                            Color(0xFFA78BFA),
+                            Color(0xFFF472B6),
+                            Color(0xFFFBBF24),
+                            Color(0xFFFB923C),
+                            Color(0xFFF87171),
+                            Color(0xFF60A5FA),
+                          ])
+                            _ColorDot(
+                              color: color,
+                              selected: _highlightColor == color,
+                              onTap: () async {
+                                setState(() => _highlightColor = color);
+                                await sl<SettingsRepository>()
+                                    .setLeaderboardHighlightColor(color.value);
+                              },
+                            ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                SectionLabel('Admin'),
+                AppCard(
+                  child: _NavRow(
+                    icon: Icons.admin_panel_settings_rounded,
+                    label: 'Admin panel',
+                    onTap: () => context.push('/aura/admin/users'),
+                  ),
+                ),
+                SectionLabel('Quiet hours'),
                 AppCard(
                   child: Column(
                     children: [
@@ -164,12 +244,26 @@ class _SettingsPageState extends State<SettingsPage> {
                       ),
                       if (_quietHours) ...[
                         const SizedBox(height: AppSpacing.s3),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text('From 10 PM to 9 AM', style: AppType.sm(c)),
-                            Icon(Icons.chevron_right, color: c.textFaint),
-                          ],
+                        InkWell(
+                          onTap: () => _pickTime(isStart: true),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text('Start time', style: AppType.body(c)),
+                              Text(_formatTime(_quietStart), style: AppType.bodyStrong(c)),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: AppSpacing.s2),
+                        InkWell(
+                          onTap: () => _pickTime(isStart: false),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text('End time', style: AppType.body(c)),
+                              Text(_formatTime(_quietEnd), style: AppType.bodyStrong(c)),
+                            ],
+                          ),
                         ),
                       ],
                     ],
@@ -228,12 +322,77 @@ class _NotifRow extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(ru ? pref.labelRu : pref.label, style: AppType.body(c)),
-              Text(pref.description, style: AppType.sm(c)),
+              Text(ru ? pref.descriptionRu : pref.description, style: AppType.sm(c)),
             ],
           ),
         ),
         AppSwitch(value: pref.enabled, onChanged: onChanged),
       ],
+    );
+  }
+}
+
+class _ColorDot extends StatelessWidget {
+  final Color color;
+  final bool selected;
+  final VoidCallback onTap;
+  const _ColorDot({
+    required this.color,
+    required this.selected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      behavior: HitTestBehavior.opaque,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        width: 36,
+        height: 36,
+        decoration: BoxDecoration(
+          color: color,
+          shape: BoxShape.circle,
+          border: Border.all(
+            color: selected ? Colors.white : Colors.transparent,
+            width: 3,
+          ),
+        ),
+        child: selected
+            ? const Icon(Icons.check, size: 20, color: Colors.white)
+            : null,
+      ),
+    );
+  }
+}
+
+class _NavRow extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+  const _NavRow({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final c = Theme.of(context).extension<AppColors>()!;
+    return InkWell(
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: AppSpacing.s3),
+        child: Row(
+          children: [
+            Icon(icon, color: c.accent1, size: 22),
+            const SizedBox(width: AppSpacing.s3),
+            Expanded(child: Text(label, style: AppType.body(c))),
+            Icon(Icons.chevron_right_rounded, color: c.textFaint),
+          ],
+        ),
+      ),
     );
   }
 }
