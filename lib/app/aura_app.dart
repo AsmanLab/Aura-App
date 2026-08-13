@@ -10,12 +10,12 @@ import 'package:aura_app/core/settings/locale_cubit.dart';
 import 'package:aura_app/core/settings/theme_cubit.dart';
 import 'package:aura_app/features/auth/domain/repositories/auth_repository.dart';
 import 'package:aura_app/core/services/app_update_service.dart';
-import 'package:aura_app/features/attendance/presentation/bloc/attendance_cubit.dart';
+import 'package:aura_app/l10n/generated/app_localizations.dart';
 import 'package:aura_app/features/attendance/domain/repositories/attendance_repository.dart';
+import 'package:aura_app/features/attendance/presentation/bloc/attendance_cubit.dart';
 import 'package:aura_app/features/profile/presentation/pages/style_gallery_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -77,7 +77,7 @@ class _AuraAppState extends ConsumerState<AuraApp> {
             themeMode: themeMode,
             locale: locale,
             supportedLocales: const [Locale('en'), Locale('ru')],
-            localizationsDelegates: GlobalMaterialLocalizations.delegates,
+            localizationsDelegates: S.localizationsDelegates,
             routerConfig: _router,
           );
         },

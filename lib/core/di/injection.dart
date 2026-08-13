@@ -20,9 +20,9 @@ import '../../features/leaderboard/domain/repositories/leaderboard_repository.da
 import '../../features/profile/data/datasources/profile_remote_data_source.dart';
 import '../../features/profile/data/repositories/profile_repository_impl.dart';
 import '../../features/profile/domain/repositories/profile_repository.dart';
-import 'package:aura_app/core/data/repositories/seed_duty_repository.dart';
+import 'package:aura_app/core/data/repositories/firebase_duty_repository.dart';
+import 'package:aura_app/core/data/repositories/firebase_people_repository.dart';
 import 'package:aura_app/core/data/repositories/seed_knowledge_repository.dart';
-import 'package:aura_app/core/data/repositories/seed_people_repository.dart';
 import 'package:aura_app/core/data/repositories/seed_settings_repository.dart';
 import '../../features/auth/data/datasources/auth_remote_data_source.dart';
 import '../../features/auth/data/repositories/auth_repository_impl.dart';
@@ -119,8 +119,15 @@ Future<void> setupDi() async {
   await sl<AppUpdateService>().init();
 
   // Repositories (seed-backed).
-  sl.registerLazySingleton<PeopleRepository>(() => SeedPeopleRepository());
-  sl.registerLazySingleton<DutyRepository>(() => SeedDutyRepository());
+  sl.registerLazySingleton<PeopleRepository>(
+    () => FirebasePeopleRepository(
+      FirebaseFirestore.instance,
+      FirebaseAuth.instance,
+    ),
+  );
+  sl.registerLazySingleton<DutyRepository>(
+    () => FirebaseDutyRepository(FirebaseFirestore.instance),
+  );
   sl.registerLazySingleton<KnowledgeRepository>(
     () => SeedKnowledgeRepository(),
   );

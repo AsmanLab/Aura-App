@@ -46,6 +46,9 @@ class Avatar extends StatelessWidget {
   /// gradient initials when null/empty or if it fails to load.
   final String? photoUrl;
 
+  /// Optional ring color override. When null, uses the default gradient.
+  final Color? ringColor;
+
   const Avatar({
     super.key,
     required this.id,
@@ -53,6 +56,7 @@ class Avatar extends StatelessWidget {
     this.size = 44,
     this.ring = false,
     this.photoUrl,
+    this.ringColor,
   });
 
   @override
@@ -94,6 +98,10 @@ class Avatar extends StatelessWidget {
 
     if (!ring) return disc;
 
+    final ringColors = ringColor != null
+        ? [ringColor!]
+        : [Color(0xFF8B5CF6), Color(0xFF22D3EE)];
+
     return Container(
       padding: const EdgeInsets.all(3),
       decoration: BoxDecoration(
@@ -101,7 +109,7 @@ class Avatar extends StatelessWidget {
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: grad,
+          colors: ringColors,
         ),
       ),
       child: Container(

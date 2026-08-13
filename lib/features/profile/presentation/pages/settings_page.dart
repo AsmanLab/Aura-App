@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:aura_app/core/widgets/skeleton.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
 
 import 'package:aura_app/core/di/injection.dart';
 import 'package:aura_app/core/theme/app_colors.dart';
@@ -15,6 +16,7 @@ import 'package:aura_app/core/widgets/segmented_control.dart';
 import 'package:aura_app/core/settings/locale_cubit.dart';
 import 'package:aura_app/core/settings/theme_cubit.dart';
 import 'package:aura_app/features/auth/domain/repositories/auth_repository.dart';
+import 'package:aura_app/l10n/generated/app_localizations.dart';
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
