@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:aura_app/core/widgets/skeleton.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'dart:async';
@@ -8,6 +7,7 @@ import 'package:aura_app/core/di/injection.dart';
 import 'package:aura_app/core/domain/repositories/settings_repository.dart';
 import 'package:aura_app/core/models/user_model.dart';
 import 'package:aura_app/core/models/enums.dart';
+import 'package:aura_app/core/widgets/skeleton.dart';
 import 'package:aura_app/core/theme/app_colors.dart';
 import 'package:aura_app/core/theme/app_spacing.dart';
 import 'package:aura_app/core/theme/app_typography.dart';
@@ -207,7 +207,6 @@ class _Plinth extends StatelessWidget {
             photoUrl: user.photoURL,
             size: rank == 1 ? 64 : 52,
             ring: true,
-            ringColor: user.id == meId ? highlight : null,
           ),
           const SizedBox(height: AppSpacing.s2),
           Text(
@@ -347,7 +346,6 @@ class _YourRank extends StatelessWidget {
             photoUrl: user.photoURL,
             size: 40,
             ring: true,
-            ringColor: highlight,
           ),
           const SizedBox(width: AppSpacing.s3),
           Expanded(
