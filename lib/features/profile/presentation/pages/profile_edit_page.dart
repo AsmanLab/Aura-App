@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
@@ -157,7 +158,7 @@ class _EditForm extends StatelessWidget {
   }
 }
 
-/// Uncontrolled text field seeded once from cubit state (avoids cursor jumps).
+/// Field for editing the display name with letter-only input and 32-char limit.
 class _Field extends StatefulWidget {
   final String initial;
   final String hint;
@@ -183,28 +184,76 @@ class _FieldState extends State<_Field> {
     super.dispose();
   }
 
+  String? _validate() {
+    final trimmed = _ctrl.text.trim();
+    if (trimmed.isEmpty) return null;
+    final valid = RegExp(r'^[а-яА-ЯёЁa-zA-Z ]+$').hasMatch(trimmed);
+    if (!valid) return S.of(context).nameInvalid;
+    return null;
+  }
+
   @override
   Widget build(BuildContext context) {
     final c = Theme.of(context).extension<AppColors>()!;
+    final s = S.of(context);
+    final formatters = [
+      FilteringTextInputFormatter.deny(RegExp(r'[^а-яА-ЯёЁa-zA-Z ]')),
+      LengthLimitingTextInputFormatter(32),
+    ];
+
     return AppCard.flush(
-      child: TextField(
-        controller: _ctrl,
-        style: AppType.body(c),
-        onChanged: widget.onChanged,
-        decoration: InputDecoration(
-          filled: true,
-          fillColor: c.surface,
-          hintText: widget.hint,
-          hintStyle: AppType.bodyDim(c),
-          contentPadding: const EdgeInsets.symmetric(
-            horizontal: AppSpacing.s4,
-            vertical: AppSpacing.s3,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          TextField(
+            controller: _ctrl,
+            style: AppType.body(c),
+            onChanged: (v) {
+              widget.onChanged(v);
+              setState(() {});
+            },
+            inputFormatters: formatters,
+            decoration: InputDecoration(
+              filled: true,
+              fillColor: c.surface,
+              hintText: widget.hint,
+              hintStyle: AppType.bodyDim(c),
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: AppSpacing.s4,
+                vertical: AppSpacing.s3,
+              ),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(AppSpacing.rSm),
+                borderSide: BorderSide.none,
+              ),
+            ),
           ),
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(AppSpacing.rSm),
-            borderSide: BorderSide.none,
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s4),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                if (_validate() != null)
+                  Text(
+                    _validate()!,
+                    style: AppType.bodySmall(c).copyWith(
+                      color: c.heart,
+                    ),
+                  )
+                else
+                  const SizedBox.shrink(),
+                Text(
+                  s.nameCharCount(_ctrl.text.length),
+                  style: AppType.bodySmall(c).copyWith(
+                    color: _ctrl.text.length > 32
+                        ? c.heart
+                        : c.textDim,
+                  ),
+                ),
+              ],
+            ),
           ),
-        ),
+        ],
       ),
     );
   }

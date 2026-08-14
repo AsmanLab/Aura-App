@@ -35,6 +35,7 @@ class AppType {
   static TextStyle bodyStrong(AppColors c) => _m(15, FontWeight.w700, c.text);
   static TextStyle bodyDim(AppColors c) => _m(15, FontWeight.w500, c.textDim);
   static TextStyle sm(AppColors c) => _m(13, FontWeight.w600, c.textDim);
+  static TextStyle bodySmall(AppColors c) => _m(12, FontWeight.w500, c.textDim);
   static TextStyle label(AppColors c) => _m(
     11.5,
     FontWeight.w700,

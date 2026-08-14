@@ -1171,6 +1171,24 @@ abstract class S {
   /// **'Your name'**
   String get yourNameHint;
 
+  /// No description provided for @nameCharCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{current}/32'**
+  String nameCharCount(Object current);
+
+  /// No description provided for @nameInvalid.
+  ///
+  /// In en, this message translates to:
+  /// **'Only letters and spaces are allowed'**
+  String get nameInvalid;
+
+  /// No description provided for @nameEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'Name cannot be empty'**
+  String get nameEmpty;
+
   /// No description provided for @change.
   ///
   /// In en, this message translates to:

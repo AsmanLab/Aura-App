@@ -384,6 +384,12 @@
   "@nameLabel": {},
   "yourNameHint": "Your name",
   "@yourNameHint": {},
+  "nameCharCount": "{current}/32",
+  "@nameCharCount": {},
+  "nameInvalid": "Only letters and spaces are allowed",
+  "@nameInvalid": {},
+  "nameEmpty": "Name cannot be empty",
+  "@nameEmpty": {},
 
   "change": "Change",
   "@change": {},

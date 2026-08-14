@@ -323,6 +323,12 @@
   "@nameLabel": {},
   "yourNameHint": "Ваше имя",
   "@yourNameHint": {},
+  "nameCharCount": "{current}/32",
+  "@nameCharCount": {},
+  "nameInvalid": "Разрешены только буквы и пробелы",
+  "@nameInvalid": {},
+  "nameEmpty": "Имя не может быть пустым",
+  "@nameEmpty": {},
 
   "change": "Сменить",
   "@change": {},

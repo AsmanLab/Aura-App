@@ -588,6 +588,17 @@ class SRu extends S {
   String get yourNameHint => 'Ваше имя';
 
   @override
+  String nameCharCount(Object current) {
+    return '$current/32';
+  }
+
+  @override
+  String get nameInvalid => 'Разрешены только буквы и пробелы';
+
+  @override
+  String get nameEmpty => 'Имя не может быть пустым';
+
+  @override
   String get change => 'Сменить';
 
   @override
