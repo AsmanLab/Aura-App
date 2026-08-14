@@ -148,9 +148,19 @@ class AwardCubit extends Cubit<AwardState> {
         state.copyWith(category: state.category == cat ? null : cat),
       );
 
-  void setPoints(int pts) => emit(
-        state.copyWith(points: pts.clamp(state.minPoints, state.maxPoints)),
-      );
+  void setPoints(int pts) {
+    var clamped = pts.clamp(state.minPoints, state.maxPoints);
+    if (clamped == 0) {
+      if (pts < state.points) {
+        clamped = -1;
+      } else {
+        clamped = 1;
+      }
+    }
+    emit(
+      state.copyWith(points: clamped),
+    );
+  }
   void setComment(String c) => emit(state.copyWith(comment: c));
 
   void next() {
