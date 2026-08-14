@@ -587,6 +587,17 @@ class SEn extends S {
   String get yourNameHint => 'Your name';
 
   @override
+  String nameCharCount(Object current) {
+    return '$current/32';
+  }
+
+  @override
+  String get nameInvalid => 'Only letters and spaces are allowed';
+
+  @override
+  String get nameEmpty => 'Name cannot be empty';
+
+  @override
   String get change => 'Change';
 
   @override

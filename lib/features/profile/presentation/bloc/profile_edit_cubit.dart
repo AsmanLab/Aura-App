@@ -1,6 +1,7 @@
 import 'dart:typed_data';
 
 import 'package:equatable/equatable.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import 'package:aura_app/features/auth/domain/repositories/auth_repository.dart';
@@ -30,7 +31,17 @@ class ProfileEditState extends Equatable {
     this.error,
   });
 
-  bool get canSave => !saving && displayName.trim().isNotEmpty;
+  bool get canSave =>
+      !saving &&
+      displayName.trim().isNotEmpty &&
+      _isValidName(displayName);
+
+  static final RegExp _nameRegex = RegExp(r'^[а-яА-ЯёЁa-zA-Z ]+$');
+
+  static bool _isValidName(String name) {
+    if (name.trim().isEmpty) return false;
+    return _nameRegex.hasMatch(name.trim());
+  }
 
   ProfileEditState copyWith({
     bool? loading,
@@ -40,15 +51,16 @@ class ProfileEditState extends Equatable {
     bool? saving,
     bool? saved,
     String? error,
-  }) => ProfileEditState(
-    loading: loading ?? this.loading,
-    displayName: displayName ?? this.displayName,
-    photoURL: photoURL ?? this.photoURL,
-    pickedPhoto: pickedPhoto ?? this.pickedPhoto,
-    saving: saving ?? this.saving,
-    saved: saved ?? this.saved,
-    error: error,
-  );
+  }) =>
+      ProfileEditState(
+        loading: loading ?? this.loading,
+        displayName: displayName ?? this.displayName,
+        photoURL: photoURL ?? this.photoURL,
+        pickedPhoto: pickedPhoto ?? this.pickedPhoto,
+        saving: saving ?? this.saving,
+        saved: saved ?? this.saved,
+        error: error,
+      );
 
   @override
   List<Object?> get props => [
