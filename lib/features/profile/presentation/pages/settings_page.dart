@@ -16,7 +16,6 @@ import 'package:aura_app/core/widgets/segmented_control.dart';
 import 'package:aura_app/core/settings/locale_cubit.dart';
 import 'package:aura_app/core/settings/theme_cubit.dart';
 import 'package:aura_app/features/auth/domain/repositories/auth_repository.dart';
-import 'package:aura_app/l10n/generated/app_localizations.dart';
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
@@ -31,7 +30,6 @@ class _SettingsPageState extends State<SettingsPage> {
   bool _loaded = false;
   TimeOfDay _quietStart = const TimeOfDay(hour: 22, minute: 0);
   TimeOfDay _quietEnd = const TimeOfDay(hour: 9, minute: 0);
-  Color _highlightColor = const Color(0xFF22D3EE);
 
   @override
   void initState() {
@@ -43,15 +41,8 @@ class _SettingsPageState extends State<SettingsPage> {
         _loaded = true;
       });
     });
-    sl<SettingsRepository>().getLeaderboardHighlightColor().then((value) {
-      if (!mounted || value == null) return;
-      setState(() {
-        _highlightColor = Color(value);
-      });
-    });
   }
   void _pickTime({required bool isStart}) async {
-    final s = S.of(context);
     final initial = isStart ? _quietStart : _quietEnd;
     final picked = await showTimePicker(
       context: context,
@@ -187,41 +178,6 @@ class _SettingsPageState extends State<SettingsPage> {
                     ],
                   ),
                 ),
-                const SectionLabel('Leaderboard'),
-                AppCard(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('Highlight color', style: AppType.body(c)),
-                      const SizedBox(height: AppSpacing.s3),
-                      Wrap(
-                        spacing: AppSpacing.s3,
-                        runSpacing: AppSpacing.s3,
-                        children: [
-                          for (final color in const [
-                            Color(0xFF22D3EE),
-                            Color(0xFF34D399),
-                            Color(0xFFA78BFA),
-                            Color(0xFFF472B6),
-                            Color(0xFFFBBF24),
-                            Color(0xFFFB923C),
-                            Color(0xFFF87171),
-                            Color(0xFF60A5FA),
-                          ])
-                            _ColorDot(
-                              color: color,
-                              selected: _highlightColor == color,
-                              onTap: () async {
-                                setState(() => _highlightColor = color);
-                                await sl<SettingsRepository>()
-                                    .setLeaderboardHighlightColor(color.value);
-                              },
-                            ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
                 SectionLabel('Admin'),
                 AppCard(
                   child: _NavRow(
@@ -330,41 +286,6 @@ class _NotifRow extends StatelessWidget {
         ),
         AppSwitch(value: pref.enabled, onChanged: onChanged),
       ],
-    );
-  }
-}
-
-class _ColorDot extends StatelessWidget {
-  final Color color;
-  final bool selected;
-  final VoidCallback onTap;
-  const _ColorDot({
-    required this.color,
-    required this.selected,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      behavior: HitTestBehavior.opaque,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        width: 36,
-        height: 36,
-        decoration: BoxDecoration(
-          color: color,
-          shape: BoxShape.circle,
-          border: Border.all(
-            color: selected ? Colors.white : Colors.transparent,
-            width: 3,
-          ),
-        ),
-        child: selected
-            ? const Icon(Icons.check, size: 20, color: Colors.white)
-            : null,
-      ),
     );
   }
 }

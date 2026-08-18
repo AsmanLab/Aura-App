@@ -13,6 +13,7 @@ import 'package:aura_app/core/widgets/aura_value.dart';
 import 'package:aura_app/core/widgets/avatar.dart';
 import 'package:aura_app/core/widgets/segmented_control.dart';
 import 'package:aura_app/l10n/generated/app_localizations.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../../domain/entities/leaderboard_entry.dart';
 import '../bloc/leaderboard_cubit.dart';
 
@@ -43,6 +44,8 @@ class _LeaderboardPageState extends State<LeaderboardPage> {
     final meId = state.meId ?? '';
     final top3 = entries.take(3).toList();
     final rest = entries.skip(3).toList();
+    final meEntry = meIndex >= 0 ? entries[meIndex] : null;
+    final currentUser = FirebaseAuth.instance.currentUser;
 
             return Stack(
               children: [
@@ -85,21 +88,31 @@ class _LeaderboardPageState extends State<LeaderboardPage> {
                           user: rest[i].user,
                           score: rest[i].score,
                           divider: i != rest.length - 1,
+                          isMe: rest[i].user.id == meId,
                         ),
                         ],
                       ),
                     ),
                   ],
                 ),
-                if (meIndex >= 0)
+                if (meIndex >= 0 || currentUser != null)
                   Positioned(
                     left: AppSpacing.screenPad,
                     right: AppSpacing.screenPad,
                     bottom: 100,
                   child: _YourRank(
-                    rank: meIndex + 1,
-                    user: entries[meIndex].user,
-                    score: entries[meIndex].score,
+                    rank: meIndex >= 0 ? meIndex + 1 : (rest.length + top3.length + 1),
+                    user: meEntry?.user ??
+                        UserModel(
+                          id: currentUser?.uid ?? '',
+                          displayName: currentUser?.displayName ?? 'You',
+                          email: currentUser?.email ?? '',
+                          photoURL: currentUser?.photoURL,
+                          currentWeekAura: 0,
+                          totalAura: 0,
+                          createdAt: DateTime.now(),
+                        ),
+                    score: meEntry?.score ?? 0,
                   ),
                   ),
               ],
@@ -174,7 +187,7 @@ class _Plinth extends StatelessWidget {
             name: user.displayName,
             photoUrl: user.photoURL,
             size: rank == 1 ? 64 : 52,
-            ring: true,
+            ring: user.id != meId,
           ),
           const SizedBox(height: AppSpacing.s2),
           Text(
@@ -213,11 +226,13 @@ class _RestRow extends StatelessWidget {
   final UserModel user;
   final int score;
   final bool divider;
+  final bool isMe;
   const _RestRow({
     required this.rank,
     required this.user,
     required this.score,
     required this.divider,
+    required this.isMe,
   });
 
   @override
@@ -230,6 +245,7 @@ class _RestRow extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(AppSpacing.s4),
         decoration: BoxDecoration(
+          color: isMe ? const Color(0xFFFBBF24).withValues(alpha: 0.08) : null,
           border: Border(
             bottom: divider ? BorderSide(color: c.border) : BorderSide.none,
           ),
@@ -249,13 +265,35 @@ class _RestRow extends StatelessWidget {
               name: user.displayName,
               photoUrl: user.photoURL,
               size: 40,
+              ring: !isMe,
             ),
             const SizedBox(width: AppSpacing.s3),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(user.displayName, style: AppType.h3(c)),
+                  Row(
+                    children: [
+                      Text(user.displayName, style: AppType.h3(c)),
+                      if (isMe) ...[
+                        const SizedBox(width: AppSpacing.s2),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFFBBF24),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Text(
+                            'YOU',
+                            style: AppType.sm(c).copyWith(
+                              color: Colors.black,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
                    Text(isRu ? user.role.labelRu : user.role.label, style: AppType.sm(c)),
                 ],
               ),
@@ -283,14 +321,14 @@ class _YourRank extends StatelessWidget {
     final s = S.of(context);
     final c = Theme.of(context).extension<AppColors>()!;
     return AppCard(
-      color: c.surface2,
+      color: const Color(0xFFFBBF24).withValues(alpha: 0.12),
       padding: const EdgeInsets.all(AppSpacing.s4),
       onTap: () => context.push('/aura/profile/${user.id}'),
       child: Row(
         children: [
           SizedBox(
             width: 24,
-            child: Text('$rank', style: AppType.number(15, c)),
+            child: Text('$rank', style: AppType.number(15, c).copyWith(color: c.text)),
           ),
           const SizedBox(width: AppSpacing.s2),
           Avatar(
@@ -298,13 +336,13 @@ class _YourRank extends StatelessWidget {
             name: user.displayName,
             photoUrl: user.photoURL,
             size: 40,
-            ring: true,
+            ring: false,
           ),
           const SizedBox(width: AppSpacing.s3),
           Expanded(
             child: Text(
               '${s.you} · ${user.displayName.split(' ').first}',
-              style: AppType.h3(c),
+              style: AppType.h3(c).copyWith(color: Colors.black),
             ),
           ),
           AuraValue(score, size: 18, showUnit: false),
