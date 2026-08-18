@@ -8,3 +8,9 @@ google-services (5).json
 .DS_Store
 .idea/
 .vscode/
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+.pub-cache/
+.pub/
