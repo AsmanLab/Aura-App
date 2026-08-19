@@ -15,6 +15,7 @@ import 'package:aura_app/core/widgets/section_label.dart';
 import 'package:aura_app/core/widgets/segmented_control.dart';
 import 'package:aura_app/core/settings/locale_cubit.dart';
 import 'package:aura_app/core/settings/theme_cubit.dart';
+import 'package:aura_app/core/services/in_app_notifier.dart';
 import 'package:aura_app/features/auth/domain/repositories/auth_repository.dart';
 
 class SettingsPage extends StatefulWidget {
@@ -172,6 +173,10 @@ class _SettingsPageState extends State<SettingsPage> {
                             );
                             await sl<SettingsRepository>()
                                 .setNotifPref(_prefs[i].id, v);
+                            final isRu = Localizations.localeOf(context).languageCode == 'ru';
+                            InAppNotifier.settingsChanged(
+                              label: isRu ? _prefs[i].labelRu : _prefs[i].label,
+                            );
                           },
                         ),
                       ],

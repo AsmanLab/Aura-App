@@ -14,3 +14,7 @@ google-services (5).json
 .packages
 .pub-cache/
 .pub/
+pubspec.lock
+functions/node_modules/
+functions/.firebaserc
+functions/.runtimeconfig.json

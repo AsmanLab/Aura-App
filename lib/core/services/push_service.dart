@@ -6,6 +6,7 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:go_router/go_router.dart';
 
+import 'package:aura_app/core/models/aura_transaction.dart';
 import 'package:aura_app/core/router/navigation.dart';
 import 'package:aura_app/core/widgets/notification_banner.dart';
 
@@ -31,6 +32,7 @@ class PushService {
   StreamSubscription<RemoteMessage>? _foregroundSub;
   StreamSubscription<RemoteMessage>? _openedSub;
   StreamSubscription<String>? _tokenRefreshSub;
+  StreamSubscription<QuerySnapshot<Map<String, dynamic>>>? _auraSub;
 
   PushService(this._fcm, this._db, this._auth);
 
@@ -65,13 +67,26 @@ class PushService {
     // the token AFTER the user doc is created — see AuthRemoteDataSource — so
     // there's no race that writes only `fcmTokens`.)
     final current = _auth.currentUser;
-    if (current != null) await syncToken(current.uid);
+    if (current != null) {
+      await syncToken(current.uid);
+      _listenAuraTransactions(current.uid);
+    }
+
+    _auth.authStateChanges().listen((user) {
+      if (user == null) {
+        _auraSub?.cancel();
+        _auraSub = null;
+      } else {
+        _listenAuraTransactions(user.uid);
+      }
+    });
   }
 
   Future<void> dispose() async {
     await _foregroundSub?.cancel();
     await _openedSub?.cancel();
     await _tokenRefreshSub?.cancel();
+    await _auraSub?.cancel();
   }
 
   /// Save this device's current FCM token under the user. Only call once the
@@ -105,6 +120,33 @@ class PushService {
     } catch (e) {
       debugPrint('PushService.removeToken failed: $e');
     }
+  }
+
+  void _listenAuraTransactions(String uid) {
+    _auraSub?.cancel();
+    _auraSub = _db
+        .collection('aura_transactions')
+        .where('toUserId', isEqualTo: uid)
+        .orderBy('timestamp', descending: true)
+        .limit(1)
+        .snapshots()
+        .listen((snapshot) {
+      for (final change in snapshot.docChanges) {
+        if (change.type != DocumentChangeType.added) continue;
+        final data = change.doc.data();
+        if (data == null) continue;
+        final txn = AuraTransaction.fromMap(data, change.doc.id);
+        final sign = txn.points >= 0 ? '+' : '';
+        final body = txn.fromName.isNotEmpty
+            ? '$sign${txn.points} from ${txn.fromName}'
+            : '$sign${txn.points} Aura';
+        showInAppNotification(
+          title: 'Aura ${txn.points >= 0 ? 'received' : 'deducted'}',
+          body: body,
+          route: '/aura/profile',
+        );
+      }
+    });
   }
 
   void _onForeground(RemoteMessage m) {

@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import 'package:aura_app/core/theme/app_colors.dart';
 import 'package:aura_app/core/theme/app_spacing.dart';
 import 'package:aura_app/core/theme/app_typography.dart';
+import 'package:aura_app/core/services/in_app_notifier.dart';
 import 'package:aura_app/core/widgets/app_card.dart';
 import 'package:aura_app/core/widgets/avatar.dart';
 import 'package:aura_app/core/widgets/hearts_row.dart';
@@ -42,6 +43,13 @@ class HeartsPage extends StatelessWidget {
               return;
             }
             HapticFeedback.mediumImpact();
+            final recipient = state.recipient;
+            if (recipient != null) {
+              InAppNotifier.heartChanged(
+                userName: recipient.displayName,
+                delta: state.submitted ? 1 : -1,
+              );
+            }
             // Defer the pop out of the state-change callback (popping here can
             // assert mid-build/notification).
             WidgetsBinding.instance.addPostFrameCallback((_) {

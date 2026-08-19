@@ -16,6 +16,16 @@
         <meta-data
             android:name="com.google.firebase.messaging.default_notification_channel_id"
             android:value="aura" />
+        <service
+            android:name="com.onesignal.NotificationExtenderService"
+            android:permission="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.onesignal.NotificationExtender" />
+            </intent-filter>
+        </service>
+        <receiver android:name="com.onesignal.NotificationChannelManager" android:exported="false" />
+        <receiver android:name="com.onesignal.NotificationRestorer" android:exported="false" />
         <activity
             android:name=".MainActivity"
             android:exported="true"

@@ -9,6 +9,7 @@ import 'package:aura_app/core/theme/app_colors.dart';
 import 'package:aura_app/core/theme/app_spacing.dart';
 import 'package:aura_app/core/theme/app_typography.dart';
 import 'package:aura_app/core/models/enums.dart';
+import 'package:aura_app/core/services/in_app_notifier.dart';
 import 'package:aura_app/core/widgets/app_card.dart';
 import 'package:aura_app/core/widgets/aura_value.dart';
 import 'package:aura_app/core/widgets/avatar.dart';
@@ -40,6 +41,10 @@ class AwardPage extends StatelessWidget {
               return;
             }
             HapticFeedback.lightImpact();
+            InAppNotifier.awardSuccess(
+              points: state.points,
+              count: state.recipientIds.length,
+            );
             await showDialog(
               context: context,
               barrierDismissible: false,

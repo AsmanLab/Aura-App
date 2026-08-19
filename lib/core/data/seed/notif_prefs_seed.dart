@@ -3,7 +3,7 @@ import 'package:aura_app/core/domain/entities/notif_pref.dart';
 class NotifPrefsSeed {
   const NotifPrefsSeed._();
 
-  static const List<NotifPref> prefs = [
+  static final List<NotifPref> prefs = [
     NotifPref(
       id: 'duty',
       icon: 'shield',

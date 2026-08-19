@@ -11,5 +11,10 @@ class SeedSettingsRepository implements SettingsRepository {
   Future<List<NotifPref>> getNotifPrefs() async => NotifPrefsSeed.prefs;
 
   @override
-  Future<void> setNotifPref(String id, bool enabled) async {}
+  Future<void> setNotifPref(String id, bool enabled) async {
+    final index = NotifPrefsSeed.prefs.indexWhere((p) => p.id == id);
+    if (index >= 0) {
+      NotifPrefsSeed.prefs[index] = NotifPrefsSeed.prefs[index].copyWith(enabled: enabled);
+    }
+  }
 }

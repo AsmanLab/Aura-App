@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:aura_app/app/aura_app.dart';
 import 'package:aura_app/core/di/injection.dart';
 import 'package:aura_app/core/services/attendance_notification_service.dart';
+import 'package:aura_app/core/services/one_signal_service.dart';
 import 'package:aura_app/core/services/push_service.dart';
 import 'package:aura_app/firebase_options.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -35,6 +36,11 @@ Future<void> _initPush() async {
     await sl<PushService>().init();
   } catch (e) {
     debugPrint('Push init failed (non-fatal): $e');
+  }
+  try {
+    await initOneSignal();
+  } catch (e) {
+    debugPrint('OneSignal init failed (non-fatal): $e');
   }
 }
 
