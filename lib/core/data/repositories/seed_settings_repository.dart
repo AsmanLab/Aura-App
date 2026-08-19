@@ -3,6 +3,7 @@ import 'package:aura_app/core/domain/repositories/settings_repository.dart';
 import '../seed/notif_prefs_seed.dart';
 
 class SeedSettingsRepository implements SettingsRepository {
+feat/notification-settings-fix
   final List<NotifPref> _prefs = List.from(NotifPrefsSeed.prefs);
 
   @override
@@ -19,6 +20,7 @@ class SeedSettingsRepository implements SettingsRepository {
   @override
   Stream<int?> watchLeaderboardHighlightColor() => const Stream.empty();
 
+main
   @override
   Future<int?> getLeaderboardHighlightColor() async => null;
 

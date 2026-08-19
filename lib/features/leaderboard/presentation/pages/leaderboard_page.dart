@@ -37,12 +37,12 @@ class _LeaderboardPageState extends State<LeaderboardPage> {
             if (state.loading && state.entries.isEmpty) {
               return const PageSkeleton();
             }
-    final entries = state.entries;
-    final meIndex =
-        entries.indexWhere((e) => e.user.id == state.meId);
-    final meId = state.meId ?? '';
-    final top3 = entries.take(3).toList();
-    final rest = entries.skip(3).toList();
+            final entries = state.entries;
+            final meIndex =
+                entries.indexWhere((e) => e.user.id == state.meId);
+            final meId = state.meId ?? '';
+            final top3 = entries.take(3).toList();
+            final rest = entries.skip(3).toList();
 
             return Stack(
               children: [
@@ -79,13 +79,14 @@ class _LeaderboardPageState extends State<LeaderboardPage> {
                     AppCard.flush(
                       child: Column(
                         children: [
-                      for (var i = 0; i < rest.length; i++)
-                        _RestRow(
-                          rank: i + 4,
-                          user: rest[i].user,
-                          score: rest[i].score,
-                          divider: i != rest.length - 1,
-                        ),
+                          for (var i = 0; i < rest.length; i++)
+                            _RestRow(
+                              rank: i + 4,
+                              user: rest[i].user,
+                              score: rest[i].score,
+                              divider: i != rest.length - 1,
+                              isMe: rest[i].user.id == meId,
+                            ),
                         ],
                       ),
                     ),
@@ -96,11 +97,11 @@ class _LeaderboardPageState extends State<LeaderboardPage> {
                     left: AppSpacing.screenPad,
                     right: AppSpacing.screenPad,
                     bottom: 100,
-                  child: _YourRank(
-                    rank: meIndex + 1,
-                    user: entries[meIndex].user,
-                    score: entries[meIndex].score,
-                  ),
+                    child: _YourRank(
+                      rank: meIndex + 1,
+                      user: entries[meIndex].user,
+                      score: entries[meIndex].score,
+                    ),
                   ),
               ],
             );
@@ -213,11 +214,13 @@ class _RestRow extends StatelessWidget {
   final UserModel user;
   final int score;
   final bool divider;
+  final bool isMe;
   const _RestRow({
     required this.rank,
     required this.user,
     required this.score,
     required this.divider,
+    required this.isMe,
   });
 
   @override
@@ -230,6 +233,7 @@ class _RestRow extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(AppSpacing.s4),
         decoration: BoxDecoration(
+          color: isMe ? c.accentSoft : null,
           border: Border(
             bottom: divider ? BorderSide(color: c.border) : BorderSide.none,
           ),
@@ -256,7 +260,7 @@ class _RestRow extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(user.displayName, style: AppType.h3(c)),
-                   Text(isRu ? user.role.labelRu : user.role.label, style: AppType.sm(c)),
+                  Text(isRu ? user.role.labelRu : user.role.label, style: AppType.sm(c)),
                 ],
               ),
             ),
