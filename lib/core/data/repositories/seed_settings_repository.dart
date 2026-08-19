@@ -1,27 +1,27 @@
-import 'dart:async';
-
 import 'package:aura_app/core/domain/entities/notif_pref.dart';
 import 'package:aura_app/core/domain/repositories/settings_repository.dart';
 import '../seed/notif_prefs_seed.dart';
 
 class SeedSettingsRepository implements SettingsRepository {
-  static final StreamController<int?> _controller =
-      StreamController<int?>.broadcast()..add(0xFF8B5CF6);
+  final List<NotifPref> _prefs = List.from(NotifPrefsSeed.prefs);
 
   @override
-  Stream<int?> watchLeaderboardHighlightColor() => _controller.stream;
+  Future<List<NotifPref>> getNotifPrefs() async => List.unmodifiable(_prefs);
 
   @override
-  Future<int?> getLeaderboardHighlightColor() async => 0xFF8B5CF6;
-
-  @override
-  Future<void> setLeaderboardHighlightColor(int colorValue) async {
-    _controller.add(colorValue);
+  Future<void> setNotifPref(String id, bool enabled) async {
+    final index = _prefs.indexWhere((p) => p.id == id);
+    if (index >= 0) {
+      _prefs[index] = _prefs[index].copyWith(enabled: enabled);
+    }
   }
 
   @override
-  Future<List<NotifPref>> getNotifPrefs() async => NotifPrefsSeed.prefs;
+  Stream<int?> watchLeaderboardHighlightColor() => const Stream.empty();
 
   @override
-  Future<void> setNotifPref(String id, bool enabled) async {}
+  Future<int?> getLeaderboardHighlightColor() async => null;
+
+  @override
+  Future<void> setLeaderboardHighlightColor(int colorValue) async {}
 }
