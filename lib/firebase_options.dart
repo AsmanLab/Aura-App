@@ -56,16 +56,14 @@ class DefaultFirebaseOptions {
     projectId: 'aura-app-16fc3',
     storageBucket: 'aura-app-16fc3.firebasestorage.app',
   );
-
   static const FirebaseOptions ios = FirebaseOptions(
     apiKey: 'AIzaSyCovogXQ885Wq3oZjmO4J6nwXelPkOj934',
     appId: '1:594801867619:ios:11845337822ebd9a373156',
     messagingSenderId: '594801867619',
     projectId: 'aura-app-16fc3',
     storageBucket: 'aura-app-16fc3.firebasestorage.app',
-    androidClientId: '594801867619-ibqgng65ulbgc4e0fi9p9bp8lheqqmlm.apps.googleusercontent.com',
+    androidClientId: '594801867619-0g8150p147pjvqfp6ah32eseo0vh5uhd.apps.googleusercontent.com',
     iosClientId: '594801867619-hkp5skuga9q2eg4cnest0pk98jbo7voh.apps.googleusercontent.com',
     iosBundleId: 'com.aprd.auraApp',
   );
-
 }
