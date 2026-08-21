@@ -1,10 +1,12 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:go_router/go_router.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:aura_app/core/router/navigation.dart';
 import 'package:aura_app/core/widgets/notification_banner.dart';
@@ -27,12 +29,13 @@ class PushService {
   final FirebaseMessaging _fcm;
   final FirebaseFirestore _db;
   final FirebaseAuth _auth;
+  final SharedPreferences _prefs;
 
   StreamSubscription<RemoteMessage>? _foregroundSub;
   StreamSubscription<RemoteMessage>? _openedSub;
   StreamSubscription<String>? _tokenRefreshSub;
 
-  PushService(this._fcm, this._db, this._auth);
+  PushService(this._fcm, this._db, this._auth, this._prefs);
 
   Future<void> init() async {
     await _fcm.requestPermission(); // iOS sheet; Android 13+ POST_NOTIFICATIONS
@@ -108,6 +111,25 @@ class PushService {
   }
 
   void _onForeground(RemoteMessage m) {
+    final type = m.data['type'] as String?;
+    if (type != null) {
+      final raw = _prefs.getString('notif_prefs');
+      if (raw != null) {
+        try {
+          final decoded = jsonDecode(raw);
+          if (decoded is Map) {
+            final map = Map<String, dynamic>.from(decoded);
+            final enabled = map[type];
+            if (enabled is bool && !enabled) return;
+          }
+        } on FormatException {
+          // fallthrough: show notification if prefs are corrupted
+        } on TypeError {
+          // fallthrough: show notification if prefs are corrupted
+        }
+      }
+    }
+
     final n = m.notification;
     showInAppNotification(
       title: n?.title ?? m.data['title'] as String?,
