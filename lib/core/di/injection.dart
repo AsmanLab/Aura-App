@@ -63,6 +63,7 @@ Future<void> setupDi() async {
       FirebaseMessaging.instance,
       FirebaseFirestore.instance,
       FirebaseAuth.instance,
+      sl(),
     ),
   );
 
@@ -132,7 +133,7 @@ Future<void> setupDi() async {
     () => SeedKnowledgeRepository(),
   );
   sl.registerLazySingleton<SettingsRepository>(
-    () => SeedSettingsRepository(),
+    () => SeedSettingsRepository(sl(), sl(), sl()),
   );
 
   // App-global cubits (single instance).

@@ -40,7 +40,7 @@ exports.onAuraAwarded = onDocumentCreated(
     const res = await getMessaging().sendEachForMulticast({
       tokens,
       notification: { title: `${sign}${t.points} Aura`, body },
-      data: { route: '/aura/profile', txnId: event.params.id },
+      data: { route: '/aura/profile', txnId: event.params.id, type: 'aura' },
       apns: { payload: { aps: { sound: 'default' } } },
       android: { notification: { channelId: 'aura' } },
     });
