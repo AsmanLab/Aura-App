@@ -15,9 +15,7 @@ import 'package:aura_app/features/auth/domain/repositories/auth_repository.dart'
 import 'package:aura_app/features/profile/domain/repositories/profile_repository.dart';
 import 'package:aura_app/l10n/generated/app_localizations.dart';
 
-/// Full aura history — filter by category, grouped by date.
 class HistoryPage extends StatefulWidget {
-  /// Whose history. Null = the signed-in user.
   final String? userId;
   const HistoryPage({super.key, this.userId});
 
@@ -26,11 +24,37 @@ class HistoryPage extends StatefulWidget {
 }
 
 class _HistoryPageState extends State<HistoryPage> {
-  AuraCategory? _filter; // null = all
+  AuraCategory? _filter;
   bool _showCalendar = false;
   DateTime _month = DateTime(DateTime.now().year, DateTime.now().month);
   late final String? _uid =
       widget.userId ?? sl<AuthRepository>().currentUser?.id;
+  List<AuraTransaction> _all = [];
+  bool _loading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadHistory();
+  }
+
+  Future<void> _loadHistory() async {
+    if (_uid == null) {
+      if (!mounted) return;
+      setState(() => _loading = false);
+      return;
+    }
+    final data = await sl<ProfileRepository>().getHistory(_uid!);
+    if (!mounted) return;
+    setState(() {
+      _all = data;
+      _loading = false;
+    });
+  }
+
+  void _changeFilter(AuraCategory? cat) {
+    setState(() => _filter = cat);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -46,90 +70,179 @@ class _HistoryPageState extends State<HistoryPage> {
       ),
       body: SafeArea(
         top: false,
-        child: FutureBuilder<List<AuraTransaction>>(
-          future: _uid == null
-              ? Future.value(const [])
-              : sl<ProfileRepository>().getHistory(_uid),
-          builder: (context, snap) {
-            if (snap.connectionState != ConnectionState.done) {
-              return const PageSkeleton();
-            }
-            final all = snap.data ?? const <AuraTransaction>[];
-            final byCategory = _filter == null
-                ? all
-                : all.where((t) => t.category == _filter!.name).toList();
-            // Period filter: only transactions in the selected month.
-            final filtered = byCategory
-                .where((t) =>
-                    t.timestamp.year == _month.year &&
-                    t.timestamp.month == _month.month)
-                .toList();
-            final groups = _groupByDay(context, filtered);
-
-            return Column(
-              children: [
-                _FilterBar(
-                  selected: _filter,
-                  onSelect: (cat) => setState(() => _filter = cat),
-                ),
-                Expanded(
-                  child: ListView(
-                    padding: const EdgeInsets.fromLTRB(
-                      AppSpacing.screenPad,
-                      AppSpacing.s2,
-                      AppSpacing.screenPad,
-                      120,
-                    ),
-                    children: [
-                      _PeriodBar(
-                        month: _month,
-                        open: _showCalendar,
-                        onPrev: () => setState(() => _month =
-                            DateTime(_month.year, _month.month - 1)),
-                        onNext: () => setState(() => _month =
-                            DateTime(_month.year, _month.month + 1)),
-                        onToggle: () =>
-                            setState(() => _showCalendar = !_showCalendar),
-                      ),
-                      if (_showCalendar)
-                        _MonthCalendar(month: _month, txns: filtered),
-                      if (filtered.isEmpty)
-                        Padding(
-                          padding: const EdgeInsets.only(top: AppSpacing.s8),
-                          child: Center(
-                            child: Text(s.noAuraYet,
-                                style: AppType.bodyDim(c)),
-                          ),
-                        )
-                      else
-                        for (final g in groups) ...[
-                          Padding(
-                            padding: const EdgeInsets.only(
-                              top: AppSpacing.s5,
-                              bottom: AppSpacing.s2,
-                            ),
-                            child: Text(g.label, style: AppType.label(c)),
-                          ),
-                          AppCard.flush(
-                            child: Column(
-                              children: [
-                                for (var i = 0; i < g.items.length; i++)
-                                  AuraTransactionTile(
-                                    txn: g.items[i],
-                                    divider: i != g.items.length - 1,
-                                  ),
-                              ],
-                            ),
-                          ),
-                        ],
-                    ],
+        child: _loading
+            ? const PageSkeleton()
+            : Column(
+                children: [
+                  _FilterBar(
+                    selected: _filter,
+                    onSelect: _changeFilter,
                   ),
-                ),
-              ],
-            );
-          },
-        ),
+                  Expanded(
+                    child: _HistoryList(
+                      allTransactions: _all,
+                      category: _filter,
+                      month: _month,
+                      showCalendar: _showCalendar,
+                      onToggleCalendar: () =>
+                          setState(() => _showCalendar = !_showCalendar),
+                      onPrev: () => setState(() => _month =
+                          DateTime(_month.year, _month.month - 1)),
+                      onNext: () => setState(() => _month =
+                          DateTime(_month.year, _month.month + 1)),
+                    ),
+                  ),
+                ],
+              ),
       ),
+    );
+  }
+}
+
+class _HistoryList extends StatefulWidget {
+  final List<AuraTransaction> allTransactions;
+  final AuraCategory? category;
+  final DateTime month;
+  final bool showCalendar;
+  final VoidCallback onToggleCalendar;
+  final VoidCallback onPrev;
+  final VoidCallback onNext;
+
+  const _HistoryList({
+    required this.allTransactions,
+    required this.category,
+    required this.month,
+    required this.showCalendar,
+    required this.onToggleCalendar,
+    required this.onPrev,
+    required this.onNext,
+  });
+
+  @override
+  State<_HistoryList> createState() => _HistoryListState();
+}
+
+class _HistoryListState extends State<_HistoryList>
+    with AutomaticKeepAliveClientMixin {
+  final ScrollController _scrollController = ScrollController();
+  final Map<AuraCategory?, double> _scrollOffsets = {};
+
+  @override
+  bool get wantKeepAlive => true;
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollController.addListener(_onScroll);
+  }
+
+  void _onScroll() {
+    if (_scrollController.hasClients) {
+      _scrollOffsets[widget.category] = _scrollController.offset;
+    }
+  }
+
+  @override
+  void dispose() {
+    _scrollController.removeListener(_onScroll);
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  @override
+  void didUpdateWidget(covariant _HistoryList oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.category != widget.category &&
+        _scrollController.hasClients) {
+      _scrollOffsets[oldWidget.category] = _scrollController.offset;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    super.build(context);
+    final s = S.of(context);
+    final c = Theme.of(context).extension<AppColors>()!;
+
+    final allInMonth = widget.allTransactions
+        .where((t) =>
+            t.timestamp.year == widget.month.year &&
+            t.timestamp.month == widget.month.month)
+        .toList();
+    final allGroups = _groupByDay(context, allInMonth);
+
+    final visibleSet = <String>{};
+    for (final t in allInMonth) {
+      if (widget.category != null && t.category != widget.category!.name) {
+        continue;
+      }
+      visibleSet.add(_dayLabel(context, t.timestamp));
+    }
+    final isEmpty = visibleSet.isEmpty;
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_scrollController.hasClients) {
+        final target = _scrollOffsets[widget.category] ?? 0.0;
+        if ((_scrollController.offset - target).abs() > 0.5) {
+          _scrollController.jumpTo(target);
+        }
+      }
+    });
+
+    return ListView.builder(
+      key: const PageStorageKey<String>('history_list'),
+      controller: _scrollController,
+      padding: const EdgeInsets.fromLTRB(
+        AppSpacing.screenPad,
+        AppSpacing.s2,
+        AppSpacing.screenPad,
+        120,
+      ),
+      itemCount: allGroups.length + 1,
+      itemBuilder: (context, index) {
+        if (index == 0) {
+          return _PeriodBar(
+            month: widget.month,
+            open: widget.showCalendar,
+            onPrev: widget.onPrev,
+            onNext: widget.onNext,
+            onToggle: widget.onToggleCalendar,
+          );
+        }
+
+        final g = allGroups[index - 1];
+        final visible = visibleSet.contains(g.label);
+
+        return Visibility(
+          visible: visible,
+          maintainState: true,
+          maintainAnimation: true,
+          maintainSize: true,
+          child: Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.only(top: AppSpacing.s5, bottom: AppSpacing.s2),
+                child: Text(g.label, style: AppType.label(c)),
+              ),
+              AppCard.flush(
+                child: Column(
+                  children: [
+                    for (var i = 0; i < g.items.length; i++)
+                      Offstage(
+                        offstage: widget.category != null &&
+                            g.items[i].category != widget.category!.name,
+                        child: AuraTransactionTile(
+                          txn: g.items[i],
+                          divider: i != g.items.length - 1,
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 }
@@ -137,7 +250,7 @@ class _HistoryPageState extends State<HistoryPage> {
 class _DayGroup {
   final String label;
   final List<AuraTransaction> items;
-  _DayGroup(this.label, this.items);
+  const _DayGroup(this.label, this.items);
 }
 
 String _dayLabel(BuildContext context, DateTime t) {
@@ -148,7 +261,7 @@ String _dayLabel(BuildContext context, DateTime t) {
   final diff = today.difference(day).inDays;
   if (diff == 0) return s.today;
   if (diff == 1) return s.yesterday;
-  if (diff < 7) return DateFormat('EEEE').format(t); // weekday
+  if (diff < 7) return DateFormat('EEEE').format(t);
   return DateFormat('MMMM d, y').format(t);
 }
 
@@ -184,7 +297,6 @@ class _PeriodBar extends StatelessWidget {
         height: 44,
         child: Stack(
           children: [
-            // Centered period with prev/next.
             Center(
               child: Row(
                 mainAxisSize: MainAxisSize.min,
@@ -196,8 +308,7 @@ class _PeriodBar extends StatelessWidget {
                     icon: Icon(Icons.chevron_left, color: c.textDim),
                   ),
                   const SizedBox(width: AppSpacing.s3),
-                  Text(DateFormat('MMMM y').format(month),
-                      style: AppType.h3(c)),
+                  Text(DateFormat('MMMM y').format(month), style: AppType.h3(c)),
                   const SizedBox(width: AppSpacing.s3),
                   IconButton(
                     onPressed: onNext,
@@ -208,15 +319,11 @@ class _PeriodBar extends StatelessWidget {
                 ],
               ),
             ),
-            // Calendar toggle pinned right.
             Align(
               alignment: Alignment.centerRight,
               child: IconButton(
                 onPressed: onToggle,
-                icon: Icon(
-                  Icons.calendar_month,
-                  color: open ? c.accentSolid : c.text,
-                ),
+                icon: Icon(Icons.calendar_month, color: open ? c.accentSolid : c.text),
               ),
             ),
           ],
@@ -226,7 +333,6 @@ class _PeriodBar extends StatelessWidget {
   }
 }
 
-/// Month grid with per-day net aura (green if +, red if −).
 class _MonthCalendar extends StatelessWidget {
   final DateTime month;
   final List<AuraTransaction> txns;
@@ -237,18 +343,15 @@ class _MonthCalendar extends StatelessWidget {
   Widget build(BuildContext context) {
     final c = Theme.of(context).extension<AppColors>()!;
 
-    // Net points per day-of-month for this month.
     final net = <int, int>{};
     for (final t in txns) {
-      if (t.timestamp.year == month.year &&
-          t.timestamp.month == month.month) {
-        net.update(t.timestamp.day, (v) => v + t.points,
-            ifAbsent: () => t.points);
+      if (t.timestamp.year == month.year && t.timestamp.month == month.month) {
+        net.update(t.timestamp.day, (v) => v + t.points, ifAbsent: () => t.points);
       }
     }
 
     final daysInMonth = DateTime(month.year, month.month + 1, 0).day;
-    final firstWeekday = DateTime(month.year, month.month, 1).weekday; // 1=Mon
+    final firstWeekday = DateTime(month.year, month.month, 1).weekday;
     final leading = firstWeekday - 1;
     final cells = <int?>[
       ...List.filled(leading, null),
@@ -266,11 +369,7 @@ class _MonthCalendar extends StatelessWidget {
           Row(
             children: [
               for (final w in weekdays)
-                Expanded(
-                  child: Center(
-                    child: Text(w, style: AppType.label(c)),
-                  ),
-                ),
+                Expanded(child: Center(child: Text(w, style: AppType.label(c)))),
             ],
           ),
           const SizedBox(height: AppSpacing.s2),
@@ -316,15 +415,9 @@ class _DayCell extends StatelessWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Text(
-            '$day',
-            style: AppType.sm(c).copyWith(color: has ? color : c.textDim),
-          ),
+          Text('$day', style: AppType.sm(c).copyWith(color: has ? color : c.textDim)),
           if (has)
-            Text(
-              '${net! > 0 ? '+' : ''}$net',
-              style: AppType.label(c).copyWith(color: color),
-            ),
+            Text('${net! > 0 ? "+" : ""}$net', style: AppType.label(c).copyWith(color: color)),
         ],
       ),
     );
@@ -344,17 +437,10 @@ class _FilterBar extends StatelessWidget {
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: AppSpacing.screenPad),
         children: [
-          _AllChip(
-            selected: selected == null,
-            onTap: () => onSelect(null),
-          ),
+          _AllChip(selected: selected == null, onTap: () => onSelect(null)),
           const SizedBox(width: AppSpacing.s2),
           for (final cat in AuraCategory.values) ...[
-            CategoryChip(
-              cat: cat,
-              selected: selected == cat,
-              onTap: () => onSelect(cat),
-            ),
+            CategoryChip(cat: cat, selected: selected == cat, onTap: () => onSelect(cat)),
             const SizedBox(width: AppSpacing.s2),
           ],
         ],
@@ -383,12 +469,7 @@ class _AllChip extends StatelessWidget {
             borderRadius: BorderRadius.circular(AppSpacing.rChip),
             border: Border.all(color: selected ? c.accentSolid : c.border),
           ),
-          child: Text(
-            s.allFilter,
-            style: AppType.sm(c).copyWith(
-              color: selected ? Colors.white : c.textDim,
-            ),
-          ),
+          child: Text(s.allFilter, style: AppType.sm(c).copyWith(color: selected ? Colors.white : c.textDim)),
         ),
       ),
     );
